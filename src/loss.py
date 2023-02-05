@@ -61,6 +61,7 @@ class ArcFaceLoss(nn.modules.Module):
         loss = self.crit(output, labels)
 
         if self.weight is not None:
+            # print(logits.device)
             w = self.weight[labels].to(logits.device)
 
             loss = loss * w
@@ -86,7 +87,7 @@ def loss_fn(metric_crit, target_dict, output_dict, val=False):
     #ignore invalid classes for val loss
     mask = y_true < args.n_classes
     if mask.sum() == 0:
-        return torch.zeros(1,  device = y_pred.device)
+        return torch.zeros(1, device = y_pred.device)
     loss = metric_crit(y_pred[mask], y_true[mask])
 
     return loss

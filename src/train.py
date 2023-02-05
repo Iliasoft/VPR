@@ -1,3 +1,4 @@
+import torch
 from conf import *
 from utils import *
 from data import *
@@ -10,7 +11,7 @@ import math
 from collections import OrderedDict
 
 import pytorch_lightning as pl
-from pytorch_lightning.loggers import NeptuneLogger, TensorBoardLogger, TestTubeLogger
+from pytorch_lightning.loggers import NeptuneLogger, TensorBoardLogger
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 
@@ -25,15 +26,18 @@ import warnings
 import torch.distributed as dist
 import shutil
 import pickle
+import time
+
 
 def fix_row(row):
     if len(str(row).split()) > 1:
         row = int(str(row).split()[0])
     return row
 
+
 def setup():
     if args.seed == -1:
-        args.seed = np.random.randint(0,1000000)
+        args.seed = np.random.randint(0, 1000000)
     print("Seed", args.seed)
     set_seed(args.seed)
 
@@ -45,7 +49,7 @@ def setup():
     valid["img_folder"] = args.img_path_val
     valid['landmarks'] = valid['landmarks'].apply(lambda x:fix_row(x))
     valid['landmark_id'] = valid['landmarks'].fillna(-1)
-    valid['landmarks'].fillna('',inplace=True)
+    valid['landmarks'].fillna('', inplace=True)
     valid['landmark_id'] = valid['landmark_id'].astype(int)
 
     
@@ -67,7 +71,7 @@ def setup():
 
     args.n_classes = train.landmark_id.nunique()
 
-    landmark_id2class = {lid:i for i,lid in enumerate(landmark_ids)}
+    landmark_id2class = {lid: i for i, lid in enumerate(landmark_ids)}
     landmark_id2class_val = landmark_id2class.copy()
     landmark_id2class_val[-1] = args.n_classes
 
@@ -83,10 +87,10 @@ def setup():
     else:
         class_weights = None
     
-    valid['target'] = valid['landmark_id'].apply(lambda x: landmark_id2class_val.get(x,-1))
+    valid['target'] = valid['landmark_id'].apply(lambda x: landmark_id2class_val.get(x, -1))
     valid = valid[valid.target > -1].reset_index(drop=True)
 
-    allowed_classes = np.sort(valid[valid.target!=args.n_classes].target.unique())
+    allowed_classes = np.sort(valid[valid.target != args.n_classes].target.unique())
 
     train_filter['target'] = train_filter['landmark_id'].apply(lambda x: landmark_id2class_val.get(x,-1))
 
@@ -115,13 +119,10 @@ class Model(pl.LightningModule):
 
         self.model = Net(args)
     
-
     def forward(self, x, get_embeddings=False):
         return self.model(x, get_embeddings)
 
-
     def configure_optimizers(self):
-
 
         if args.optimizer == "adamw":
             self.optimizer = AdamW([{'params': self.model.parameters()}, {'params': self.metric_crit.parameters()}], lr=self.params.lr, weight_decay=args.weight_decay)
@@ -152,8 +153,7 @@ class Model(pl.LightningModule):
         # optimizer.zero_grad()
         for param in self.model.parameters():
             param.grad = None
-            
-    
+
     def train_dataloader(self):
         return self.tr_dl
 
@@ -169,7 +169,6 @@ class Model(pl.LightningModule):
             s = 0
         else:
             s = self.metric_crit.s
-
 
         if args.distributed_backend == "ddp":
             step = self.global_step*args.batch_size*len(args.gpus.split(','))*args.gradient_accumulation_steps
@@ -202,7 +201,6 @@ class Model(pl.LightningModule):
         
         return results
     
-
     def val_dataloader(self):
         return [self.val_dl, self.tr_filter_dl]
 
@@ -343,13 +341,13 @@ class Model(pl.LightningModule):
     def test_epoch_end(self, outputs):
         return self.validation_epoch_end(outputs)
 
+
 if __name__ == '__main__':
-    
+
     train, valid, train_filter, landmark_ids, landmark_id2class, landmark_id2class_val, class_weights, allowed_classes = setup()
 
     if args.filter_warnings:
         warnings.filterwarnings("ignore")
-
 
     if args.data_frac < 1.:
         train = train.sample(frac = args.data_frac)
@@ -360,7 +358,6 @@ if __name__ == '__main__':
     else:
         metric_crit = ArcFaceLoss(args.arcface_s, args.arcface_m, crit=args.crit, weight=class_weights)
         metric_crit_val = ArcFaceLoss(args.arcface_s, args.arcface_m, crit="bce", weight=None, reduction="sum")
-
 
     tr_ds = GLRDataset(train, normalization=args.normalization, aug=args.tr_aug)
 
@@ -379,6 +376,7 @@ if __name__ == '__main__':
 
     if args.logger == 'neptune':
         logger = NeptuneLogger(
+                    api_key=args.neptune_api_token,
                     project_name=args.neptune_project,
                     experiment_name=args.experiment_name, 
                     params=args.__dict__,  
@@ -393,7 +391,7 @@ if __name__ == '__main__':
     ckpt_save_path = experiment_path + '/ckpt/'
     if not os.path.exists(ckpt_save_path):
         os.makedirs(ckpt_save_path)
-    ckpt = ModelCheckpoint(ckpt_save_path, monitor='val_gap_pp', verbose=False, mode='max',period=1, save_top_k=1, save_last=True, save_weights_only=args.save_weights_only)
+    ckpt = ModelCheckpoint(ckpt_save_path, monitor='val_gap_pp', verbose=False, mode='max', period=1, save_top_k=1, save_last=True, save_weights_only=args.save_weights_only)
 
     trainer = Trainer(gpus=args.gpus, 
                               logger=logger, 
@@ -410,8 +408,8 @@ if __name__ == '__main__':
                               sync_batchnorm = args.sync_batchnorm)
 
     model = Model(args, tr_dl, val_dl, tr_filter_dl, train_filter=train_filter, metric_crit=metric_crit, metric_crit_val=metric_crit_val, allowed_classes=allowed_classes)
-
+    ####
     trainer.fit(model)
 
-    torch.save(model.model.state_dict(),experiment_path + '/' + f'{args.experiment_name}_ckpt_{args.max_epochs}.pth')
+    torch.save(model.model.state_dict(), experiment_path + '/' + f'{args.experiment_name}_ckpt_{args.max_epochs}.pth')
 

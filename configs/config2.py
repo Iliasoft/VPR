@@ -3,21 +3,20 @@ import os
 import albumentations as A
 abs_path = os.path.dirname(__file__)
 
-# os.environ["CUDA_VISIBLE_DEVICES"]= "0"
 
 args = {
     'model_path':'../models/',
-    'data_path':'/ssd/kaggle_landmark/input/',
-    'data_path_2019':'/ssd/kaggle_landmark/2019/',
-    'valid_csv_fn':'recognition_solution_v2.1.csv',
-    'train_csv_fn':'train.csv',
+    'data_path':'e:/',
+    'data_path_2019':'e:/',
+    'valid_csv_fn':'Train/recognition_solution_v2.1.csv',
+    'train_csv_fn':'Train/train.csv',
 
-    'gpus':'0,1',
-    'filter_warnings':True,
+    'gpus':'0',
+    'filter_warnings':False,
     'logger': 'neptune',
     'num_sanity_val_steps': 0,
 
-    'distributed_backend': 'ddp',
+    'distributed_backend': None,
     'channels_last':False,
 
     'gradient_accumulation_steps':4,
@@ -25,8 +24,8 @@ args = {
     'sync_batchnorm':False,
     
     'seed':1138,
-    'num_workers':4,
-    'save_weights_only':True,
+    'num_workers':2,
+    'save_weights_only':False,
 
     'resume_from_checkpoint': None,
     'pretrained_weights':None,
@@ -57,17 +56,18 @@ args = {
     'batch_size': 24,
     'max_epochs': 10,
     'scheduler': {"method":"cosine","warmup_epochs": 1},
-    
 
     'n_classes':81313,
     'data_frac':1.,
 
-    'neptune_project':'xx/kaggle-landmark',
+    'neptune_project': 'ieldarov/VPR',
+    'neptune_api_token': 'eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiIwN2E3YmRmNS05ZmUxLTQ2M2YtYTcxOS1lOGIzMzZlYmMxMDUifQ=='
+
 }
 
 args['tr_aug'] = A.Compose([
     A.SmallestMaxSize(512),
-    A.RandomCrop(height=args['crop_size'],width=args['crop_size'],p=1.),
+    A.RandomCrop(height=args['crop_size'], width=args['crop_size'],p=1.),
     A.HorizontalFlip(p=0.5),
     ])
 

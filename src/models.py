@@ -1,5 +1,5 @@
-from conf import *
-from utils import *
+# from conf import * Закоментарил эти и следующую строку январь 2023
+# from utils import *
 
 #from pytorchcv.model_provider import get_model as ptcv_get_model
 import timm
@@ -9,6 +9,7 @@ import math
 import torch
 from torch.nn import functional as F
 from torch.nn.parameter import Parameter
+
 
 class ArcMarginProduct(nn.Module):
     def __init__(self, in_features, out_features):
@@ -114,7 +115,7 @@ class Net(nn.Module):
         
         if args.pretrained_weights is not None:
             self.load_state_dict(torch.load(args.pretrained_weights, map_location='cpu'), strict=False)
-            print('weights loaded from',args.pretrained_weights)
+            print('weights loaded from', args.pretrained_weights)
 
     def forward(self, input_dict, get_embeddings=False, get_attentions=False):
 
@@ -122,7 +123,7 @@ class Net(nn.Module):
         x = self.backbone(x)
         
         x = self.global_pool(x)
-        x = x[:,:,0,0]
+        x = x[:, :, 0, 0]
         
         x = self.neck(x)
 
