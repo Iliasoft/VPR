@@ -7,13 +7,13 @@ Target - show that AI-based solutions can confidently detect post cards depictin
 Approach - understand theory, find existing technological solutions appropriate for the task, select best one, based on it come up with workable POC, demonstrate convincing results.  
 
 Tangible Results achieved:
-Four nn-models were trained and tested for the IR task, all proved capability of detecting same landmark postcards. 
-KCP (1K manually Categorized Postcards) Data Set with domain-specific images (postcards).
+- Four nn-models were trained and tested for the IR task, all proved capability of detecting same landmark postcards. 
+- KCP (1K manually Categorized Postcards) Data Set with domain-specific images (postcards).
 
 Open question:
-issues with out-of-domain pictures (non-landmarks).
-issues with pictures containing huge blank borders on the edges.
-issues with pictures depicting river banks, lakes, bushes.
+- issues with out-of-domain pictures (non-landmarks).
+- issues with pictures containing huge blank borders on the edges.
+- issues with pictures depicting river banks, lakes, bushes.
 
 Steps to reproduce the experiment:
 
