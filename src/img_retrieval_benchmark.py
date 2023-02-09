@@ -89,7 +89,6 @@ class ImgPairsDataset(Dataset):
 
         assert(len(self.df[IMG].unique()) == len(self.embeddings[IMAGE_NAMES]))
 
-
     def __len__(self):
         return len(self.negative_pairs) + len(self.positive_pairs)
 
@@ -97,7 +96,6 @@ class ImgPairsDataset(Dataset):
         '''
         :return pairs of images in the DS, with class label 1 - positive, 0 - negative
         '''
-
         if idx < len(self.positive_pairs):
             pair = self.positive_pairs[idx]
         else:
@@ -106,7 +104,9 @@ class ImgPairsDataset(Dataset):
         return [
             self.embeddings[EMBEDDINGS][self.embeddings[IMAGE_NAMES].index(pair[0])],
             self.embeddings[EMBEDDINGS][self.embeddings[IMAGE_NAMES].index(pair[1])],
-            idx < len(self.positive_pairs)
+            idx < len(self.positive_pairs),
+            pair[0],
+            pair[1]
         ]
 
     @staticmethod
@@ -117,12 +117,12 @@ class ImgPairsDataset(Dataset):
 if __name__ == '__main__':
 
     ds_root_folder = sys.argv[1]
-    print(f"Testing model performance on KCP (1K manually Categorized Postcards) Data Set: {ds_root_folder}")
+    print(f"Testing model performance on KISA (1K Image Similarity Assembly) Data Set: {ds_root_folder}")
     ds = ImgPairsDataset(ds_root_folder)
 
     best_f1 = 0
     best_threshold = None
-    discretisation = 1000
+    discretisation = 100
     for threshold in range(discretisation, 0, -1):
         predicted_labels = []
         true_labels = []
@@ -138,13 +138,43 @@ if __name__ == '__main__':
 
     predicted_labels = []
     true_labels = []
+    confusion_matrix_FP = []
+    confusion_matrix_FN = []
+
     for pair in ds:
         similarity = cosine_similarity(pair[0].reshape(1, -1), pair[1].reshape(1, -1)).ravel()[0]
         predicted_labels.append(similarity >= best_threshold)
         true_labels.append(pair[2])
+
+        if true_labels[-1] != predicted_labels[-1] and predicted_labels[-1]:
+            confusion_matrix_FP.append(pair)
+        elif true_labels[-1] != predicted_labels[-1] and not predicted_labels[-1]:
+            confusion_matrix_FN.append(pair)
+
     acc = accuracy_score(true_labels, predicted_labels)
     f1 = f1_score(true_labels, predicted_labels)
     precision = precision_score(true_labels, predicted_labels, zero_division=0)
     recall = recall_score(true_labels, predicted_labels, zero_division=0)
 
     print(f"Threshold: {best_threshold:.5f}, Acc: {acc:.3f}, F1:{f1:.3f}, Precision:{precision:.3f}, Recall: {recall:.3f}")
+
+    with open(ImgPairsDataset.join(ds_root_folder, "confusion_matrix.html"), "w") as text_file:
+        print("<html><body>", file=text_file)
+        if len(confusion_matrix_FP):
+            print(f"False positive pairs {len(confusion_matrix_FP)}:<br>", file=text_file)
+        for pair in confusion_matrix_FP:
+            print(
+                f"<a href=file://{ImgPairsDataset.join(ds_root_folder, pair[3])}>{pair[3]}</a>",
+                f"<a href=file://{ImgPairsDataset.join(ds_root_folder, pair[4])}>{pair[4]}</a><br>",
+                file=text_file
+            )
+
+        if len(confusion_matrix_FN):
+            print(f"False negative pairs {len(confusion_matrix_FN)}:<br>", file=text_file)
+        for pair in confusion_matrix_FN:
+            print(
+                f"<a href=file://{ImgPairsDataset.join(ds_root_folder, pair[3])}>{pair[3]}</a><",
+                f"<a href=file://{ImgPairsDataset.join(ds_root_folder, pair[4])}>{pair[4]}</a><br>",
+                file=text_file
+            )
+        print("</body></html>", file=text_file)

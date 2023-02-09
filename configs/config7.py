@@ -22,10 +22,10 @@ args = {
     'sync_batchnorm':False,
 
     'seed':5553,
-    'num_workers':25,
+    'num_workers':20,
     'save_weights_only': False,
     'resume_from_checkpoint': "../models/config7/ckpt/last.ckpt",
-    'pretrained_weights':None,
+    'pretrained_weights': None,
     'normalization':'imagenet',
     'crop_size':512,
 
@@ -37,13 +37,13 @@ args = {
 
     'neck': 'option-D',
     'head':'arc_margin',
-    'p_trainable':False,
+    'p_trainable': False,
 
     'crit': "bce",
     'loss':'arcface',
     #'focal_loss_gamma': 2,
     'class_weights': "log",
-    'class_weights_norm' :'batch',
+    'class_weights_norm': 'batch',
     
     'optimizer': "sgd",
     'weight_decay':1e-4,

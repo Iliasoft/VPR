@@ -10,7 +10,8 @@ from torch.utils.data import Dataset
 from pathlib import Path
 from tqdm import tqdm
 from models import *
-from configs import config1
+from configs import config6
+import sys
 
 
 class Dict2Class(object):
@@ -49,12 +50,13 @@ IMAGES_LIST = "images_file_names.pkl"
 
 class MultiDirDataset(Dataset):
 
-    def __init__(self, root_dir, aug=None, normalize=None):
+    def __init__(self, root_dir, aug=None, normalize=None, ignore_imgs=None):
 
         self.normalize = normalize
         self.aug = aug
         self.images = None
         self.image_dirs = None
+        self.ignore_imgs = ignore_imgs
 
         try:
             with open(join(root_dir, DIRS_PROCESSED_CACHE), 'rb') as f:
@@ -75,6 +77,8 @@ class MultiDirDataset(Dataset):
         return img_aug.astype(np.float32)
 
     def __getitem__(self, idx):
+        if idx < self.ignore_imgs:
+            return [0]
 
         img_path = join(get_dir_name(idx, self.image_dirs), self.images[idx] + ".jpg")
         image = cv2.imread(img_path)
@@ -90,11 +94,12 @@ class MultiDirDataset(Dataset):
         image = torch.from_numpy(image.transpose((2, 0, 1)))
         return {'input': image}
 
+
 def get_embedding_file_name(id):
     return f"embeddings_{id}.pkl"
 
 
-def get_embeddings(dl, model, args, store_batch_size):
+def get_embeddings(dl, model, args, store_batch_size, batches_to_ignore=None):
 
     store_batch_size = (store_batch_size // batch_size)
     with torch.no_grad():
@@ -103,6 +108,9 @@ def get_embeddings(dl, model, args, store_batch_size):
         idx = 0
 
         for batch in tqdm(iterator):
+            if idx < batches_to_ignore:
+                idx += 1
+                continue
 
             batch['input'] = batch['input'].cuda()
             outs = model.forward(batch, get_embeddings=True)["embeddings"]
@@ -111,33 +119,36 @@ def get_embeddings(dl, model, args, store_batch_size):
             idx += 1
             if not idx % store_batch_size:
 
-                with open(os.path.join(args.small_ds_dir, get_embedding_file_name(idx // store_batch_size - 1)), 'wb') as f:
+                with open(os.path.join(sys.argv[1], get_embedding_file_name(idx // store_batch_size - 1)), 'wb') as f:
                     pickle.dump(embeddings, f)
                 # print(idx // store_batch_size, idx, store_batch_size)
-            elif idx > len(dl):
+            elif idx >= len(dl):
 
-                with open(os.path.join(args.small_ds_dir, get_embedding_file_name(idx // store_batch_size)), 'wb') as f:
+                with open(os.path.join(sys.argv[1], get_embedding_file_name(idx // store_batch_size)), 'wb') as f:
                     pickle.dump(embeddings[:batch_size*((idx - 1) % store_batch_size) + outs.size(0)], f)
 
 
 if __name__ == '__main__':
-    args = Dict2Class(config1.args)
-
+    args = Dict2Class(config6.args)
+    '''
     albumentation = A.Compose([
             A.SmallestMaxSize(interpolation=cv2.INTER_AREA, max_size=512),
             A.CenterCrop(height=args.crop_size, width=args.crop_size, p=1.)
         ]
     )
-
+    '''
+    skip_images = 0
     batch_size = 128
-    data_set = MultiDirDataset(args.small_ds_dir, albumentation, normalize_imagenet_img)
-    print(f"Generating embedding for the directory {args.small_ds_dir}, {len(data_set)} images")
+    assert(not skip_images % batch_size)
+
+    data_set = MultiDirDataset(sys.argv[1], args.val_aug, normalize_imagenet_img, skip_images)
+    print(f"Generating embedding for the directory {sys.argv[1]}, {len(data_set)} images")
 
     data_loader = DataLoader(
         data_set,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=args.num_workers,
+        num_workers=2,
         pin_memory=True,
         pin_memory_device='cuda:0'
     )
@@ -147,4 +158,4 @@ if __name__ == '__main__':
     model.cuda()
     model.load_state_dict(torch.load(args.model_weights_file_name))
 
-    get_embeddings(data_loader, model, args, 200*1024)
+    get_embeddings(data_loader, model, args, 10*1024, skip_images/batch_size)

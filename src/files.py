@@ -1,6 +1,7 @@
 from tqdm import tqdm
 import zlib
 import pickle
+import sys
 from os import listdir
 from os.path import isfile, isdir
 
@@ -41,8 +42,8 @@ if __name__ == '__main__':
 
     # print(sys.argv)
     args_disk = 'EbayI'
-    args_root_dir = 'f:/test'# 'f:/ebay/ebay.IX' #'f:/test'
-    args_save_dir = "d:/"
+    args_root_dir = sys.argv[1]  # 'f:/test'# 'f:/ebay/ebay.IX' #'f:/test'
+    args_save_dir = sys.argv[2]  # "d:/"
     args_start_file_counter = 0
     SOURCE_DIRS_CACHE = "source_dirs_cache.pkl"
     DIRS_PROCESSED_CACHE = "scanned_dirs.pkl"
