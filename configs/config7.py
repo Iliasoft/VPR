@@ -44,7 +44,9 @@ args = {
     #'focal_loss_gamma': 2,
     'class_weights': "log",
     'class_weights_norm': 'batch',
-    
+
+    'model_weights_file_name': "../models/config7/config7_ckpt_12.pth",  # IE added
+
     'optimizer': "sgd",
     'weight_decay':1e-4,
     'lr': 0.05,

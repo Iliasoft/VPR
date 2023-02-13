@@ -78,7 +78,7 @@ args['tr_aug'] = A.Compose([A.LongestMaxSize(512, p=1),
                             p=1.0
                             )
 
-args['val_aug'] = A.Compose([A.LongestMaxSize(512, p=1),
+args['val_aug'] = A.Compose([A.LongestMaxSize(512, interpolation=cv2.INTER_AREA, p=1), # added by IE: interpolation=cv2.INTER_AREA
                              A.PadIfNeeded(512, 512, border_mode=cv2.BORDER_CONSTANT, p=1),
                              A.CenterCrop(always_apply=False, p=1.0, height=args['crop_size'], width=args['crop_size']),
                             ], 

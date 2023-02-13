@@ -10,7 +10,7 @@ from torch.utils.data import Dataset
 from pathlib import Path
 from tqdm import tqdm
 from models import *
-from configs import config6
+from configs import config1, config2, config3, config4, config5, config6, config7
 
 
 class Dict2Class(object):
@@ -32,10 +32,11 @@ def normalize_imagenet_img(img):
 
 class DirDataset(Dataset):
 
-    def __init__(self, root_dir, aug=None, normalize=None):
+    def __init__(self, root_dir, aug, normalize=None):
         self.root_dir = root_dir
         self.normalize = normalize
-        self.aug = aug
+        self.aug = albumentation
+
         self.image_names = list(Path(root_dir).glob('*.jpg'))
 
     def __len__(self):
@@ -50,10 +51,9 @@ class DirDataset(Dataset):
         image = cv2.imread(img_path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-        if self.aug:
-            image = self.augment(image)
+        image = self.augment(image)
+        #image = image.astype(np.float32)
 
-        image = image.astype(np.float32)
         if self.normalize:
             image = self.normalize(image)
 
@@ -89,6 +89,7 @@ if __name__ == '__main__':
         ]
     )
     '''
+
     albumentation = args.val_aug
 
     batch_size = 64
