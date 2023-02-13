@@ -1,6 +1,6 @@
 import sys
 import pandas as pd
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 import itertools
 import math
 import random
@@ -29,7 +29,7 @@ MODE_LANDMARKS_ONLY = 1
 class ImgPairsDataset(Dataset):
 
     def __init__(self, root_dir, mode):
-
+        super().__init__()
         self.df = pd.read_csv(
             ImgPairsDataset.join(root_dir, IMAGE_TO_CATEGORIES_MAPPING_FILE_NAME),
             header=0, names=[IMG, CAT, EXT_CATS]
@@ -50,28 +50,38 @@ class ImgPairsDataset(Dataset):
                 expected_sum += math.factorial(len(self.categories_to_images[key]))/(math.factorial(len(self.categories_to_images[key]) - 2) * 2)
 
         assert expected_sum == len(self.positive_pairs)
+
         try:
 
             with open(ImgPairsDataset.join(root_dir, NEGATIVE_PAIRS_FILE_NAME), 'rb') as f:
                 self.negative_pairs = pickle.load(f)
-                assert len(self.negative_pairs) == len(self.positive_pairs)
+                assert len(self.negative_pairs) == 2 * len(self.positive_pairs)
 
         except FileNotFoundError:
             print("Warning: no pre-calculated negative pairs file available")
 
             self.negative_pairs = []
-
             positive_categories = np.delete(self.categories, np.where(self.categories == NO_CATEGORY_REPLACEMENT))
+
             while len(self.negative_pairs) != len(self.positive_pairs):
                 pair = (
-                    random.choice(self.categories_to_images[random.choice(positive_categories) if self.mode == MODE_LANDMARKS_ONLY else NO_CATEGORY_REPLACEMENT]),
-                    random.choice(self.categories_to_images[random.choice(positive_categories) if self.mode == MODE_LANDMARKS_ONLY else NO_CATEGORY_REPLACEMENT])
+                    random.choice(self.categories_to_images[random.choice(positive_categories)]),
+                    random.choice(self.categories_to_images[random.choice(positive_categories)])
                 )
 
                 if pair not in self.positive_pairs and (pair[1], pair[0]) not in self.positive_pairs and pair[0] != pair[1] and pair not in self.negative_pairs and (pair[1], pair[0]) not in self.negative_pairs:
                     self.negative_pairs.append(pair)
 
-            assert len(self.negative_pairs) == len(self.positive_pairs)
+            while len(self.negative_pairs) != 2 * len(self.positive_pairs):
+                pair = (
+                    random.choice(self.categories_to_images[NO_CATEGORY_REPLACEMENT]),
+                    random.choice(self.categories_to_images[NO_CATEGORY_REPLACEMENT])
+                )
+
+                if pair not in self.positive_pairs and (pair[1], pair[0]) not in self.positive_pairs and pair[0] != pair[1] and pair not in self.negative_pairs and (pair[1], pair[0]) not in self.negative_pairs:
+                    self.negative_pairs.append(pair)
+
+            assert len(self.negative_pairs) == 2 * len(self.positive_pairs)
 
             with open(ImgPairsDataset.join(root_dir, NEGATIVE_PAIRS_FILE_NAME), 'wb') as f:
                 pickle.dump(self.negative_pairs, f)
@@ -82,26 +92,30 @@ class ImgPairsDataset(Dataset):
         assert len(self.df[IMG].unique()) == len(self.embeddings[IMAGE_NAMES])
 
     def __len__(self):
-
-        return len(self.negative_pairs) + len(self.positive_pairs)
+        return len(self.positive_pairs) + len(self.negative_pairs) // 2
 
     def __getitem__(self, idx):
         '''
-        :return pairs of images in the DS, with class label 1 - positive, 0 - negative
+        :returns pairs of images in the DS, with class label 1 - positive, 0 - negative
         '''
 
         if idx < len(self.positive_pairs):
             pair = self.positive_pairs[idx]
-        else:
+        elif self.mode == MODE_LANDMARKS_ONLY:
             pair = self.negative_pairs[idx - len(self.positive_pairs)]
+        else:
+            pair = self.negative_pairs[idx - len(self.positive_pairs) + len(self.negative_pairs) // 2]
 
         return [
             self.embeddings[EMBEDDINGS][self.embeddings[IMAGE_NAMES].index(pair[0])],
             self.embeddings[EMBEDDINGS][self.embeddings[IMAGE_NAMES].index(pair[1])],
-            idx < len(self.positive_pairs),
+            idx < len(self.positive_pairs), # true class label
             pair[0],
             pair[1]
         ]
+
+    def __iter__(self):
+        return iter(map(self.__getitem__, np.arange(self.__len__())))
 
     @staticmethod
     def join(r, d):
@@ -117,26 +131,25 @@ def html_pair(file_name_1, file_name_2, confidence, type):
     return f"<tr><td>{type}<br>Similarity:{confidence:.2f}</td>{html_img(file_name_1)}{html_img(file_name_2)}</tr>"
 
 
-def benchmark(test_name, ds, confusion_file_name, discretisation=1000):
+def benchmark(test_name, ds, confusion_file_name, discretisation=10):
 
     best_f1 = 0
     best_threshold = 0
 
-    if not best_threshold:
-        for threshold in range(discretisation, 0, -1):
-            predicted_labels = []
-            true_labels = []
-            for pair in ds:
-                similarity = cosine_similarity(pair[0].reshape(1, -1), pair[1].reshape(1, -1)).ravel()[0]
-                predicted_labels.append(similarity >= threshold/discretisation)
-                true_labels.append(pair[2])
+    for threshold in range(discretisation, 0, -1):
+        predicted_labels = []
+        true_labels = []
+        for pair in ds:
+            similarity = cosine_similarity(pair[0].reshape(1, -1), pair[1].reshape(1, -1)).ravel()[0]
+            predicted_labels.append(similarity >= threshold/discretisation)
+            true_labels.append(pair[2])
 
-            f1 = f1_score(true_labels, predicted_labels)
-            # print(threshold, f1)
+        f1 = f1_score(true_labels, predicted_labels)
+        # print(threshold, f1)
 
-            if f1 > best_f1:
-                best_f1 = f1
-                best_threshold = threshold/discretisation
+        if f1 > best_f1:
+            best_f1 = f1
+            best_threshold = threshold/discretisation
 
     predicted_labels = []
     true_labels = []
@@ -144,6 +157,7 @@ def benchmark(test_name, ds, confusion_file_name, discretisation=1000):
     confusion_matrix_fn = []
 
     for pair in ds:
+
         similarity = cosine_similarity(pair[0].reshape(1, -1), pair[1].reshape(1, -1)).ravel()[0]
         predicted_labels.append(similarity >= best_threshold)
         true_labels.append(pair[2])
@@ -181,12 +195,13 @@ def benchmark(test_name, ds, confusion_file_name, discretisation=1000):
 if __name__ == '__main__':
 
     ds_root_folder = sys.argv[1]
+
     print(f"Testing performance on KISA (1K Image Similarity Assembly) Data Set: {ds_root_folder}")
 
     test_name = "Landmark postcards"
     ds = ImgPairsDataset(ds_root_folder, MODE_LANDMARKS_ONLY)
     benchmark(test_name, ds, test_name + "_" + CONFUSION_LIST)
 
-    test_name = "Blend of postcards"
+    test_name = "Blend of landmark and non-landmark postcards"
     ds = ImgPairsDataset(ds_root_folder, MODE_BLEND)
     benchmark(test_name, ds, test_name + "_" + CONFUSION_LIST)
