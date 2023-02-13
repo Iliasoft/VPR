@@ -1,6 +1,6 @@
 import sys
 import pandas as pd
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 import itertools
 import math
 import random
@@ -131,7 +131,7 @@ def html_pair(file_name_1, file_name_2, confidence, type):
     return f"<tr><td>{type}<br>Similarity:{confidence:.2f}</td>{html_img(file_name_1)}{html_img(file_name_2)}</tr>"
 
 
-def benchmark(test_name, ds, confusion_file_name, discretisation=100):
+def benchmark(test_name, ds, confusion_file_name, discretisation=1000):
 
     best_f1 = 0
     best_threshold = 0

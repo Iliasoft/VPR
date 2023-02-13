@@ -46,8 +46,8 @@ ex.: python img_retrieval_benchmark f:/KCP
 ```
 You should receive the following as the script output: <br>
 ```
-Landmark postcards: Threshold:0.27900, Acc:0.964, F1:0.963, Precision:0.972, Recall:0.955
-Blend of landmark and non-landmark postcards: Threshold:0.32100, Acc:0.911, F1:0.912, Precision:0.900, Recall:0.924
+Landmark postcards: Threshold:0.28100, Acc:0.961, F1:0.961, Precision:0.967, Recall:0.955
+Blend of landmark and non-landmark postcards: Threshold:0.32100, Acc:0.918, F1:0.919, Precision:0.912, Recall:0.925
 ```
 
 Threshold - optimal threshold of similarity used to judge if 2 images are similar or not (calculated by the tool).
