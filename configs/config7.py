@@ -22,9 +22,9 @@ args = {
     'sync_batchnorm':False,
 
     'seed':5553,
-    'num_workers':20,
+    'num_workers':2,# it was 20 wuth 3060
     'save_weights_only': False,
-    'resume_from_checkpoint': "../models/config7/ckpt/last.ckpt",
+    'resume_from_checkpoint': "../models/config7/ckpt/epoch=11.ckpt",
     'pretrained_weights': None,
     'normalization':'imagenet',
     'crop_size':512,
@@ -49,10 +49,10 @@ args = {
 
     'optimizer': "sgd",
     'weight_decay':1e-4,
-    'lr': 0.05,
-    'batch_size': 16,
-    'max_epochs': 12,# it was 10
-    'scheduler': {"method":"cosine","warmup_epochs": 1},
+    'lr': 0.05,#0.05 originally
+    'batch_size': 8,# it was 16 with 3060
+    'max_epochs': 13,# it was 10
+    'scheduler': {"method":"cosine", "warmup_epochs": 1},
     
     'n_classes':81313,
     'data_frac':1.,

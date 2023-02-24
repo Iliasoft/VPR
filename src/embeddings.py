@@ -80,7 +80,7 @@ def get_embeddings(dl, model, args):
 
 
 if __name__ == '__main__':
-    args = Dict2Class(config6.args)
+    args = Dict2Class(config7.args)
     print("Generating img embeddings for the directory " + sys.argv[1])
     '''
     albumentation = A.Compose([
@@ -92,20 +92,21 @@ if __name__ == '__main__':
 
     albumentation = args.val_aug
 
-    batch_size = 64
+    batch_size = 24
     data_set = DirDataset(sys.argv[1], albumentation, normalize_imagenet_img)
     data_loader = DataLoader(
         data_set,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=args.num_workers,
-        pin_memory=True,
-        pin_memory_device='cuda:0'
+        num_workers=2,
+        # pin_memory=True,
+        # pin_memory_device='cuda:0'
     )
 
     model = Net(args)
     model.eval()
     model.cuda()
+    #model.load_state_dict(torch.load("d:/model.pth"))
     model.load_state_dict(torch.load(args.model_weights_file_name))
 
     embeddings, img_names = get_embeddings(data_loader, model, args)

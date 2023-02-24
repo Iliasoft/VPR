@@ -27,7 +27,7 @@ args = {
     'num_workers':2,
     'save_weights_only':False,
 
-    'resume_from_checkpoint': "../models/config6/ckpt/last.ckpt",
+    'resume_from_checkpoint': "../models/config6/ckpt/epoch=10.ckpt",
     'pretrained_weights': None,
     'model_weights_file_name': "../models/config6/config6_ckpt_12.pth",  # IE added
 

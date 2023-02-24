@@ -4,14 +4,13 @@ import pickle
 import tqdm
 import cv2
 import numpy as np
-import albumentations as A
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
-from pathlib import Path
 from tqdm import tqdm
 from models import *
-from configs import config6
+from configs import config7
 import sys
+from files import get_dir_name, join, crc32
 
 
 class Dict2Class(object):
@@ -31,22 +30,9 @@ def normalize_imagenet_img(img):
     return img
 
 
-def get_dir_name(file_id, dirs):
-
-    for dir in dirs:
-        if dir[2] <= file_id <= dir[3]:
-            return dir[1]
-
-    return None
-
-
-def join(r, d):
-    return r + "/" + d
-
-
 DIRS_PROCESSED_CACHE = "scanned_dirs.pkl"
 IMAGES_LIST = "images_file_names.pkl"
-
+IMG_METADATA_FILE_NAME = "images_metadata.pkl"
 
 class MultiDirDataset(Dataset):
 
@@ -81,8 +67,11 @@ class MultiDirDataset(Dataset):
             return [0]
 
         img_path = join(get_dir_name(idx, self.image_dirs), self.images[idx] + ".jpg")
-        image = cv2.imread(img_path)
+        data, crc_value = crc32(img_path)
+        image = cv2.imdecode(data, cv2.IMREAD_UNCHANGED)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+        img_h, img_w = image.shape[0], image.shape[1]
 
         if self.aug:
             image = self.augment(image)
@@ -92,7 +81,7 @@ class MultiDirDataset(Dataset):
             image = self.normalize(image)
 
         image = torch.from_numpy(image.transpose((2, 0, 1)))
-        return {'input': image}
+        return {'input': image, "len": len(data), "crc": crc_value, "h": img_h, "w": img_w}
 
 
 def get_embedding_file_name(id):
@@ -102,15 +91,23 @@ def get_embedding_file_name(id):
 def get_embeddings(dl, model, args, store_batch_size, batches_to_ignore=None):
 
     store_batch_size = (store_batch_size // batch_size)
+    images_len, images_crc, images_h, images_w = [], [], [], []
+
     with torch.no_grad():
         embeddings = np.empty((store_batch_size * batch_size, args.embedding_size))
         iterator = iter(dl)
         idx = 0
 
         for batch in tqdm(iterator):
+
             if idx < batches_to_ignore:
                 idx += 1
                 continue
+
+            images_len.extend(batch['len'].tolist())
+            images_crc.extend(batch['crc'])
+            images_h.extend(batch['h'].tolist())
+            images_w.extend(batch['w'].tolist())
 
             batch['input'] = batch['input'].cuda()
             outs = model.forward(batch, get_embeddings=True)["embeddings"]
@@ -127,18 +124,14 @@ def get_embeddings(dl, model, args, store_batch_size, batches_to_ignore=None):
                 with open(os.path.join(sys.argv[1], get_embedding_file_name(idx // store_batch_size)), 'wb') as f:
                     pickle.dump(embeddings[:batch_size*((idx - 1) % store_batch_size) + outs.size(0)], f)
 
+        with open(os.path.join(sys.argv[1], IMG_METADATA_FILE_NAME), 'wb') as f:
+            pickle.dump({"len": images_len, "crc": images_crc, "h": images_h, "w": images_w}, f)
+
 
 if __name__ == '__main__':
-    args = Dict2Class(config6.args)
-    '''
-    albumentation = A.Compose([
-            A.SmallestMaxSize(interpolation=cv2.INTER_AREA, max_size=512),
-            A.CenterCrop(height=args.crop_size, width=args.crop_size, p=1.)
-        ]
-    )
-    '''
+    args = Dict2Class(config7.args)
     skip_images = 0
-    batch_size = 128
+    batch_size = 32
     assert(not skip_images % batch_size)
 
     data_set = MultiDirDataset(sys.argv[1], args.val_aug, normalize_imagenet_img, skip_images)
@@ -148,9 +141,9 @@ if __name__ == '__main__':
         data_set,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=2,
-        pin_memory=True,
-        pin_memory_device='cuda:0'
+        num_workers=4,
+        #pin_memory=True,
+        #pin_memory_device='cuda:0'
     )
 
     model = Net(args)
@@ -158,4 +151,4 @@ if __name__ == '__main__':
     model.cuda()
     model.load_state_dict(torch.load(args.model_weights_file_name))
 
-    get_embeddings(data_loader, model, args, 10*1024, skip_images/batch_size)
+    get_embeddings(data_loader, model, args, 1*256, skip_images/batch_size)

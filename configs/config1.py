@@ -28,9 +28,9 @@ args = {
 
     'p_trainable': True,
 
-    'resume_from_checkpoint': "../models/config1/ckpt/last.ckpt",
+    'resume_from_checkpoint': "../models/config1/ckpt/epoch=11.ckpt",
     'pretrained_weights': None,
-    'model_weights_file_name': "../models/config1/config1_ckpt_12.pth",# IE added
+    #'model_weights_file_name': "../models/config1/config1_ckpt_12.pth",# IE added
 
     'normalization':'imagenet',
     'crop_size':448,

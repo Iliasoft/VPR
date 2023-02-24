@@ -28,7 +28,7 @@ args = {
     
     'drop_last_n': 0,
     'save_weights_only': False,
-    'resume_from_checkpoint': "../models/config5/ckpt/last.ckpt",
+    'resume_from_checkpoint': "../models/config5/ckpt/epoch=11.ckpt",
     'model_weights_file_name': "../models/config5/config5_ckpt_12.pth",  # IE added
 
     'p_trainable': True,

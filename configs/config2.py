@@ -27,8 +27,9 @@ args = {
     'num_workers':2,
     'save_weights_only':False,
 
-    'resume_from_checkpoint': None,
-    'pretrained_weights':None,
+    'resume_from_checkpoint': None,#"../models/config2/ckpt/epoch=10.ckpt",
+    'pretrained_weights': None,
+    'model_weights_file_name': "../models/config2/config1_ckpt_10.pth",# IE added
 
     'normalization':'imagenet',
     'crop_size':448,
@@ -53,7 +54,7 @@ args = {
     'optimizer': "sgd",
     'weight_decay':1e-4,
     'lr': 0.05,
-    'batch_size': 24,
+    'batch_size': 9,
     'max_epochs': 10,
     'scheduler': {"method":"cosine","warmup_epochs": 1},
 

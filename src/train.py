@@ -52,8 +52,6 @@ def setup():
     valid['landmarks'].fillna('', inplace=True)
     valid['landmark_id'] = valid['landmark_id'].astype(int)
 
-    
-
     if args.data_path_2 is not None:
         train_2 = pd.read_csv(args.data_path_2 + args.train_2_csv_fn)
         train_2["img_folder"] = args.img_path_train_2
@@ -409,6 +407,9 @@ if __name__ == '__main__':
 
     model = Model(args, tr_dl, val_dl, tr_filter_dl, train_filter=train_filter, metric_crit=metric_crit, metric_crit_val=metric_crit_val, allowed_classes=allowed_classes)
     ####
+    # use this hack to generate model from checkpoint defined by args.resume_from_checkpoint
+    #torch.save(model.model.state_dict(), "d:/model.pth")
+    ######
     trainer.fit(model)
 
     torch.save(model.model.state_dict(), experiment_path + '/' + f'{args.experiment_name}_ckpt_{args.max_epochs}.pth')
