@@ -58,7 +58,7 @@ args = {
     'data_frac':1.,
 
     'neptune_project':'ieldarov/VPR',
-    'neptune_api_token':'eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiIwN2E3YmRmNS05ZmUxLTQ2M2YtYTcxOS1lOGIzMzZlYmMxMDUifQ=='
+    'neptune_api_token':None
 }
 
 args['tr_aug'] = A.Compose([A.Resize(height=544,width=672,p=1.),
@@ -66,6 +66,7 @@ args['tr_aug'] = A.Compose([A.Resize(height=544,width=672,p=1.),
     A.HorizontalFlip(p=0.5),
     ])
 
-args['val_aug'] = A.Compose([A.Resize(height=544,width=672,p=1.),
-    A.CenterCrop(height=args['crop_size'],width=args['crop_size'],p=1.)
+args['val_aug'] = A.Compose([
+    A.Resize(height=544, width=672, p=1.),
+    A.CenterCrop(height=args['crop_size'], width=args['crop_size'], p=1.)
 ])

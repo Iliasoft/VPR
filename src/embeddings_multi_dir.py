@@ -1,3 +1,4 @@
+import sys
 import os
 import torch
 import pickle
@@ -9,8 +10,7 @@ from torch.utils.data import Dataset
 from tqdm import tqdm
 from models import *
 from configs import config7
-import sys
-from files import get_dir_name, join, crc32
+from files import get_dir_name, join, crc32, DIRS_KEY, DIRS_MAP_FILE_NAME, IMAGES_LIST_FILE_NAME, IMAGES_METADATA_FILE_NAME
 
 
 class Dict2Class(object):
@@ -30,9 +30,10 @@ def normalize_imagenet_img(img):
     return img
 
 
-DIRS_PROCESSED_CACHE = "scanned_dirs.pkl"
-IMAGES_LIST = "images_file_names.pkl"
-IMG_METADATA_FILE_NAME = "images_metadata.pkl"
+def collate_fn(batch):
+    batch = list(filter(lambda x: x is not None, batch))
+    return torch.utils.data.dataloader.default_collate(batch)
+
 
 class MultiDirDataset(Dataset):
 
@@ -45,12 +46,12 @@ class MultiDirDataset(Dataset):
         self.ignore_imgs = ignore_imgs
 
         try:
-            with open(join(root_dir, DIRS_PROCESSED_CACHE), 'rb') as f:
+            with open(join(root_dir, DIRS_MAP_FILE_NAME), 'rb') as f:
                 s = pickle.load(f)
-                self.image_dirs = s["dirs"]
+                self.image_dirs = s[DIRS_KEY]
 
-            with open(join(root_dir, IMAGES_LIST), 'rb') as f:
-                self.images = pickle.load(f)
+            with open(join(root_dir, IMAGES_LIST_FILE_NAME), 'rb') as f:
+                self.images = pickle.load(f)[self.ignore_imgs:]
 
         except FileNotFoundError:
             print("Error: list of directories/images is/are missing")
@@ -63,46 +64,64 @@ class MultiDirDataset(Dataset):
         return img_aug.astype(np.float32)
 
     def __getitem__(self, idx):
-        if idx < self.ignore_imgs:
-            return [0]
 
-        img_path = join(get_dir_name(idx, self.image_dirs), self.images[idx] + ".jpg")
-        data, crc_value = crc32(img_path)
-        image = cv2.imdecode(data, cv2.IMREAD_UNCHANGED)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        try:
+            img_path = join(get_dir_name(idx + self.ignore_imgs if self.ignore_imgs else idx, self.image_dirs), self.images[idx] + ".jpg")
 
-        img_h, img_w = image.shape[0], image.shape[1]
+            data, crc_value = crc32(img_path)
+            image = cv2.imdecode(data, cv2.IMREAD_UNCHANGED)
 
-        if self.aug:
-            image = self.augment(image)
+            if image is None:
+                data, crc_value = crc32('H:/ebay/ebay.v/parsingTest0/0.jpg')
+                image = cv2.imdecode(data, cv2.IMREAD_UNCHANGED)
+                print(f"Warning: ignoring item getItem({idx} @ {img_path})")
 
-        image = image.astype(np.float32)
-        if self.normalize:
-            image = self.normalize(image)
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            img_h, img_w = image.shape[0], image.shape[1]
 
-        image = torch.from_numpy(image.transpose((2, 0, 1)))
-        return {'input': image, "len": len(data), "crc": crc_value, "h": img_h, "w": img_w}
+            if self.aug:
+                image = self.augment(image)
+
+            image = image.astype(np.float32)
+            if self.normalize:
+                image = self.normalize(image)
+
+            image = torch.from_numpy(image.transpose((2, 0, 1)))
+            return {'input': image, "len": len(data), "crc": crc_value, "h": img_h, "w": img_w}
+
+        except Exception as e:
+            print(f"Error in getItem({idx})")
+            print(e)
+            return None
 
 
 def get_embedding_file_name(id):
     return f"embeddings_{id}.pkl"
 
 
-def get_embeddings(dl, model, args, store_batch_size, batches_to_ignore=None):
+def get_embeddings(dl, model, args, desired_store_size, images_to_ignore=None):
 
-    store_batch_size = (store_batch_size // batch_size)
+    batches_per_store_file = (desired_store_size // batch_size)
     images_len, images_crc, images_h, images_w = [], [], [], []
+    batches_to_ignore = 0
+    if images_to_ignore:
+
+        with open(os.path.join(sys.argv[1], IMAGES_METADATA_FILE_NAME), 'rb') as f:
+            t = pickle.load(f)
+            images_len = t['len'][:images_to_ignore]
+            images_crc = t['crc'][:images_to_ignore]
+            images_h = t['h'][:images_to_ignore]
+            images_w = t['w'][:images_to_ignore]
+
+        batches_to_ignore = int(images_to_ignore/(batches_per_store_file*batch_size))
 
     with torch.no_grad():
-        embeddings = np.empty((store_batch_size * batch_size, args.embedding_size))
+        embeddings = np.empty((batches_per_store_file * batch_size, args.embedding_size))
+
         iterator = iter(dl)
-        idx = 0
+        idx = batches_to_ignore*batches_per_store_file
 
         for batch in tqdm(iterator):
-
-            if idx < batches_to_ignore:
-                idx += 1
-                continue
 
             images_len.extend(batch['len'].tolist())
             images_crc.extend(batch['crc'])
@@ -111,39 +130,41 @@ def get_embeddings(dl, model, args, store_batch_size, batches_to_ignore=None):
 
             batch['input'] = batch['input'].cuda()
             outs = model.forward(batch, get_embeddings=True)["embeddings"]
-            embeddings[(idx % store_batch_size) * batch_size:(idx % store_batch_size) * batch_size + outs.size(0), :] = outs.detach().cpu().numpy()
+            embeddings[(idx % batches_per_store_file) * batch_size:(idx % batches_per_store_file) * batch_size + outs.size(0), :] = outs.detach().cpu().numpy()
 
             idx += 1
-            if not idx % store_batch_size:
+            if not idx % batches_per_store_file:
 
-                with open(os.path.join(sys.argv[1], get_embedding_file_name(idx // store_batch_size - 1)), 'wb') as f:
+                with open(os.path.join(sys.argv[1], get_embedding_file_name(idx // batches_per_store_file - 1)), 'wb') as f:
                     pickle.dump(embeddings, f)
                 # print(idx // store_batch_size, idx, store_batch_size)
-            elif idx >= len(dl):
+            elif idx - batches_to_ignore * batches_per_store_file >= len(dl):
 
-                with open(os.path.join(sys.argv[1], get_embedding_file_name(idx // store_batch_size)), 'wb') as f:
-                    pickle.dump(embeddings[:batch_size*((idx - 1) % store_batch_size) + outs.size(0)], f)
+                with open(os.path.join(sys.argv[1], get_embedding_file_name(idx // batches_per_store_file)), 'wb') as f:
+                    pickle.dump(embeddings[:batch_size * ((idx - 1) % batches_per_store_file) + outs.size(0)], f)
 
-        with open(os.path.join(sys.argv[1], IMG_METADATA_FILE_NAME), 'wb') as f:
+        with open(os.path.join(sys.argv[1], IMAGES_METADATA_FILE_NAME), 'wb') as f:
             pickle.dump({"len": images_len, "crc": images_crc, "h": images_h, "w": images_w}, f)
 
 
 if __name__ == '__main__':
     args = Dict2Class(config7.args)
-    skip_images = 0
-    batch_size = 32
-    assert(not skip_images % batch_size)
+    source_dir = sys.argv[1]
+    desired_store_size = int(float(sys.argv[2]) * 1024)  #200
+    images_to_skip = int(sys.argv[3])  #5751804
+    batch_size = 60
 
-    data_set = MultiDirDataset(sys.argv[1], args.val_aug, normalize_imagenet_img, skip_images)
-    print(f"Generating embedding for the directory {sys.argv[1]}, {len(data_set)} images")
+    assert(not images_to_skip % batch_size)
+
+    data_set = MultiDirDataset(source_dir, args.val_aug, normalize_imagenet_img, images_to_skip)
+    print(f"Generating embeddings for the directory {source_dir}, {len(data_set)} images")
 
     data_loader = DataLoader(
         data_set,
         batch_size=batch_size,
         shuffle=False,
         num_workers=4,
-        #pin_memory=True,
-        #pin_memory_device='cuda:0'
+        collate_fn=collate_fn
     )
 
     model = Net(args)
@@ -151,4 +172,4 @@ if __name__ == '__main__':
     model.cuda()
     model.load_state_dict(torch.load(args.model_weights_file_name))
 
-    get_embeddings(data_loader, model, args, 1*256, skip_images/batch_size)
+    get_embeddings(data_loader, model, args, desired_store_size, images_to_skip)

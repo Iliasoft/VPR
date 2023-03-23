@@ -46,7 +46,27 @@ if __name__ == '__main__':
     args_horizontal_scope_completion = int(sys.argv[2])
     args_low_threshold = float(sys.argv[3])
     args_high_threshold = float(sys.argv[4])
+    assert args_low_threshold < args_high_threshold <= 1
+
+    low_range_idx = -1
+    high_range_idx = -1
+    for idx, s_range in enumerate(similarity_ranges):
+        if s_range[0] < args_low_threshold <= s_range[1]:
+            low_range_idx = idx
+            break
+
+    for idx, s_range in enumerate(similarity_ranges):
+        if s_range[1] >= args_high_threshold > s_range[0]:
+            high_range_idx = idx
+            break
+
+    assert low_range_idx != -1 and high_range_idx != -1
+    # print(args_low_threshold, similarity_ranges[low_range_idx])
+    # print(args_high_threshold, similarity_ranges[high_range_idx])
+    print(f"Effective range:{similarity_ranges[low_range_idx][0]} - {similarity_ranges[high_range_idx][1]}: {similarity_ranges[low_range_idx:high_range_idx + 1]}")
+
     img_duplicate_ids = {}
+
     try:
         with open(join(root_dir, DIRS_PROCESSED_CACHE), 'rb') as f:
             image_dirs = pickle.load(f)["dirs"]
@@ -62,12 +82,10 @@ if __name__ == '__main__':
         with open(join(sys.argv[1], get_similarity_file_name(h, args_horizontal_scope_completion)), 'rb') as f:
             img_duplicate_ids.update(pickle.load(f))
 
-    print(similarity_ranges[9:10])
-
     unflattened_image_clusters = []
     for key in img_duplicate_ids.keys():
 
-        f = flatten(img_duplicate_ids[key][8:9])
+        f = flatten(img_duplicate_ids[key][low_range_idx:high_range_idx + 1])
         if f:
             s = set(f)
             s.add(key)
@@ -76,7 +94,7 @@ if __name__ == '__main__':
     duplicated_sets = cluster_duplicates(unflattened_image_clusters)
     # duplicated_items = flatten([[img_duplicate_ids[key][i] for i in range(len(img_duplicate_ids[key]))] for key in img_duplicate_ids.keys()])
     print(f"Duplicated groups:{len(duplicated_sets)}, items:{len(img_duplicate_ids)}")
-    #print(duplicated_sets)
+
     duplicated_file_names = []
     for entry in duplicated_sets:
         # print(entry)
@@ -88,8 +106,5 @@ if __name__ == '__main__':
                 )
             )
         )
-
-
-
 
     print(duplicated_file_names)

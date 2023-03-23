@@ -3,11 +3,11 @@ import os
 import pickle
 import torch
 from tqdm import tqdm
-from configs import config1, config2, config3, config4, config5, config6, config7
+from configs import config7
 from torch.nn import CosineSimilarity
 from embeddings_multi_dir import Dict2Class
 import sys
-from embeddings_multi_dir import DIRS_PROCESSED_CACHE, IMAGES_LIST
+#from embeddings_multi_dir import
 import shutil
 from files import flatten, join, get_dir_name, flatten
 
@@ -19,7 +19,8 @@ def get_embedding_file_name(id):
 def get_similarity_file_name(h, v):
     return f"similarity_{h}_{v}.pkl"
 
-similarity_ranges = ((0.45, 0.5), (0.5, 0.55), (0.55, 0.6), (0.6, 0.65), (0.65, 0.7), (0.7, 0.75), (0.75, 0.8), (0.8, 0.85), (0.85, 0.9), (0.9, 0.95), (0.95, 1.0))
+#similarity_ranges = ((0.55, 0.6), (0.6, 0.65), (0.65, 0.7), (0.7, 0.75), (0.75, 0.8), (0.8, 0.85), (0.85, 0.9), (0.9, 0.95), (0.95, 1.0))
+similarity_ranges = [((r - 25)/1000, r/1000) for r in range(625, 1024, 25)]
 
 
 if __name__ == '__main__':
@@ -36,22 +37,24 @@ if __name__ == '__main__':
 
     cosine_similarity = CosineSimilarity(dim=1, eps=1e-6).cuda()
 
+    if args_vertical_scope_start != args_vertical_scope_finish:
+        with open(join(sys.argv[1], get_embedding_file_name(args_vertical_scope_finish)), 'rb') as f:
+            tmp = pickle.load(f)
+            last_v_length = tmp.shape[0]
+    else:
+        last_v_length = 0
+
     with open(join(sys.argv[1], get_embedding_file_name(args_horizontal_scope)), 'rb') as f:
         embeddings_horizontal = pickle.load(f)
         embedding_file_length = embeddings_horizontal.shape[0]
 
     img_duplicate_ids = {}
-    if args_vertical_scope_completed != 0:
+    if args_vertical_scope_completed != -1:
         with open(join(sys.argv[1], get_similarity_file_name(args_horizontal_scope, args_vertical_scope_completed)), 'rb') as f:
             img_duplicate_ids = pickle.load(f)
-    #with open("e:/150_0.pkl", 'wb') as f:
-    #    pickle.dump(embeddings_horizontal[:150 * 1024], f)
-    # e = np.vstack((embeddings_horizontal, embeddings_horizontal[:56 * 1024]))
-    #with open("e:/embeddings_1.pkl", 'wb') as f:
-    #    pickle.dump(embeddings_horizontal[:128 * 1024], f)
 
     progress_bar = tqdm(
-        total=(1 + args_vertical_scope_finish - args_vertical_scope_start) * embeddings_horizontal.shape[0],
+        total=(args_vertical_scope_finish - args_vertical_scope_start) * embeddings_horizontal.shape[0] + last_v_length,
         desc="Comparing images"
     )
 
@@ -72,10 +75,15 @@ if __name__ == '__main__':
                 if v == args_vertical_scope_start == args_horizontal_scope:
                     idx_diagonal_correction = idx + 1
 
-                similarities = cosine_similarity(
-                    torch.from_numpy(e).cuda(),
-                    embedding_vertical[idx_diagonal_correction:]
-                ).cpu().numpy()
+                    similarities = cosine_similarity(
+                        torch.from_numpy(e).cuda(),
+                        embedding_vertical[idx_diagonal_correction:]
+                    ).cpu().numpy()
+                else:
+                    similarities = cosine_similarity(
+                        torch.from_numpy(e).cuda(),
+                        embedding_vertical
+                    ).cpu().numpy()
 
                 indices = [np.logical_and(similarities > similarity_ranges[0], similarities <= similarity_ranges[1]) for similarity_ranges in similarity_ranges]
                 group = [(np.nonzero(ind)[0] + idx_v_correction + idx_diagonal_correction).tolist() or None for ind in indices]
@@ -90,18 +98,30 @@ if __name__ == '__main__':
                             existing_groups[sim_range_id] = np.append(existing_groups[sim_range_id], gf).tolist() if existing_groups[sim_range_id] else gf
 
                 elif list(filter(None, group)):
-                    img_duplicate_ids[embedding_file_length * args_horizontal_scope + idx] = group#[item or [] for item in group]#list(filter(None, group))
+                    img_duplicate_ids[embedding_file_length * args_horizontal_scope + idx] = group
 
                 progress_bar.update()
 
-    # duplicated_items = flatten([[img_duplicate_ids[key][i] for i in range(len(img_duplicate_ids[key]))] for key in img_duplicate_ids.keys()])
-    # print(f"Duplicated groups:{len(img_duplicate_ids)}, items:{len(duplicated_items)}")
+            del embedding_vertical
+            torch.cuda.synchronize()
+            torch.cuda.empty_cache()
 
-    with open(join(sys.argv[1], get_similarity_file_name(args_horizontal_scope, args_vertical_scope_finish)), 'wb') as f:
-        pickle.dump(img_duplicate_ids, f)
+            with open(join(sys.argv[1], get_similarity_file_name(args_horizontal_scope, v)), 'wb') as f:
+                pickle.dump(img_duplicate_ids, f)
 
-    if args_vertical_scope_completed != 0:
-        shutil.move(
-            join(sys.argv[1], get_similarity_file_name(args_horizontal_scope, args_vertical_scope_completed)),
-            join(sys.argv[1], "_" + get_similarity_file_name(args_horizontal_scope, args_vertical_scope_completed)),
-        )
+            try:
+                if args_vertical_scope_completed != -1:
+                    shutil.move(
+                        join(sys.argv[1], get_similarity_file_name(args_horizontal_scope, v - 1)),
+                        join(sys.argv[1], "_" + get_similarity_file_name(args_horizontal_scope, v - 1)),
+                    )
+            except:
+                print("Warning: can't rename similarity file")
+
+    img_duplicate_elements = [0 for i in range(len(similarity_ranges))]
+    for k in img_duplicate_ids.keys():
+        arrays = img_duplicate_ids[k]
+        for a in range(len(similarity_ranges)):
+            img_duplicate_elements[a] += len(arrays[a]) if arrays[a] else 0
+
+    print(len(img_duplicate_ids.keys()), img_duplicate_elements)

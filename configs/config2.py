@@ -62,7 +62,7 @@ args = {
     'data_frac':1.,
 
     'neptune_project': 'ieldarov/VPR',
-    'neptune_api_token': 'eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiIwN2E3YmRmNS05ZmUxLTQ2M2YtYTcxOS1lOGIzMzZlYmMxMDUifQ=='
+    'neptune_api_token': None
 
 }
 
