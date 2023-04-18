@@ -46,9 +46,11 @@ class GLRDataset(Dataset):
         # ie added
         import pickle
         self.images_2_filtered_texts_embeddings = None
-        if txt_embedding:
+        if txt_embedding_fn:
             with open(txt_embedding_fn, 'rb') as f:
                 self.images_2_filtered_texts_embeddings = pickle.load(f)
+            print(f"loaded {len(self.images_2_filtered_texts_embeddings)} txt embeddings")
+
         # end of ie addition
         self.empty_txt_embedding = torch.zeros(384)
 
@@ -71,15 +73,14 @@ class GLRDataset(Dataset):
         tensor = self.to_torch_tensor(img)
         # ie modification
         if id_ in self.images_2_filtered_texts_embeddings:
-
-            txt_embedding = self.images_2_filtered_texts_embeddings[id_]
+            txt_embedding = torch.tensor(self.images_2_filtered_texts_embeddings[id_])
         else:
             txt_embedding = self.empty_txt_embedding
         # end of ie modification
         target = torch.tensor(self.labels[idx])
         feature_dict = {'idx': torch.tensor(idx).long(),
                         'input': tensor,
-                        'input_txt': txt_embedding,# added by ilias
+                        'input_txt': txt_embedding,
                         'target': target.float()
                         }
         return feature_dict

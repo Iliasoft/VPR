@@ -406,11 +406,6 @@ if __name__ == '__main__':
                               sync_batchnorm = args.sync_batchnorm)
 
     model = Model(args, tr_dl, val_dl, tr_filter_dl, train_filter=train_filter, metric_crit=metric_crit, metric_crit_val=metric_crit_val, allowed_classes=allowed_classes)
-    ####
-    # use this hack to generate model from checkpoint defined by args.resume_from_checkpoint
-    #torch.save(model.model.state_dict(), "d:/model.pth")
-    ######
     trainer.fit(model)
 
     torch.save(model.model.state_dict(), experiment_path + '/' + f'{args.experiment_name}_ckpt_{args.max_epochs}.pth')
-

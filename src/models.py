@@ -112,8 +112,9 @@ class Net(nn.Module):
             )
         # ie corrections
         # self.head = ArcMarginProduct(self.embedding_size, args.n_classes)
-        if args.txt_embeddings:
+        if args.text_embedding_size:
             self.has_txt_embeddings = True
+            print(f"Model txt embeddings:{args.text_embedding_size}")
         else:
             self.has_txt_embeddings = False
         self.head = ArcMarginProduct(self.embedding_size + args.text_embedding_size, args.n_classes)

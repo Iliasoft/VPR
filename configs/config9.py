@@ -53,7 +53,7 @@ args = {
     'lr': 0.05,
     'weight_decay': 1e-4,
     'batch_size': 24,  # was 24
-    'max_epochs': 10,  # was 12
+    'max_epochs': 11,  # was 12
 
     'scheduler': {"method": "cosine", "warmup_epochs": 1},
 

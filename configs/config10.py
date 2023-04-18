@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 
 abs_path = os.path.dirname(__file__)
-# this is a copy of model 9 and 4
+# this is a copy of models 9 and 4
 
 args = {
     'model_path': '../models/',
@@ -30,7 +30,7 @@ args = {
     'save_weights_only': False,
     'resume_from_checkpoint': None,
 
-    'text_embeddings_fn': "../models/config10/images_text_embeddings.pkl",  # IE added
+    'text_embeddings_fn': "../models/config10/images_text_embeddings_text_ocr.pkl",  # IE added
     'text_embedding_size': 384,
 
     'p_trainable': True,
@@ -54,17 +54,17 @@ args = {
     'optimizer': "sgd",
     'lr': 0.05,
     'weight_decay': 1e-4,
-    'batch_size': 12,  # was 12
-    'max_epochs': 12,  # was 10
+    'batch_size': 16,
+    'max_epochs': 11,
 
     'scheduler': {"method": "cosine", "warmup_epochs": 1},
 
     'pretrained_weights': None,
 
-    'n_classes': 81313,
+    'n_classes': 84011,
     'data_frac': 1.,
 
-    'num_workers': 2,
+    'num_workers': 4,
     'crop_size': 448,
 
     'neptune_project': 'ieldarov/VPR',
