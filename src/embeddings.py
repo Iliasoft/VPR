@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 from pathlib import Path
 from tqdm import tqdm
+from files import join
 from models import *
 from configs import config1, config2, config3, config4, config5, config6, config7
 
@@ -36,8 +37,10 @@ class DirDataset(Dataset):
         self.root_dir = root_dir
         self.normalize = normalize
         self.aug = albumentation
-
-        self.image_names = list(Path(root_dir).glob('*.jpg'))
+        import glob
+        #self.image_names = list(Path(root_dir).glob('*.jpg'))
+        self.image_names = list(Path(root_dir).glob('**/*.jpg'))
+        # print(self.image_names)
 
     def __len__(self):
         return len(self.image_names)
@@ -49,16 +52,19 @@ class DirDataset(Dataset):
     def __getitem__(self, idx):
         img_path = str(self.image_names[idx])
         image = cv2.imread(img_path)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        try:
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        except:
+
+            print("Error", img_path)
 
         image = self.augment(image)
-        #image = image.astype(np.float32)
 
         if self.normalize:
             image = self.normalize(image)
 
         image = torch.from_numpy(image.transpose((2, 0, 1)))
-        return {'img_name': self.image_names[idx].name, 'input': image}
+        return {'img_name': join(self.image_names[idx].parts[-2], self.image_names[idx].name), 'input': image}
 
 
 def get_embeddings(dl, model, args):
@@ -82,15 +88,8 @@ def get_embeddings(dl, model, args):
 if __name__ == '__main__':
     args = Dict2Class(config7.args)
     print("Generating img embeddings for the directory " + sys.argv[1])
-    '''
-    albumentation = A.Compose([
-            A.SmallestMaxSize(interpolation=cv2.INTER_AREA, max_size=512),
-            A.CenterCrop(height=args.crop_size, width=args.crop_size, p=1.)
-        ]
-    )
-    '''
 
-    albumentation = args.val_aug
+    albumentation = args.class_aug
 
     batch_size = 24
     data_set = DirDataset(sys.argv[1], albumentation, normalize_imagenet_img)
@@ -98,7 +97,7 @@ if __name__ == '__main__':
         data_set,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=2,
+        num_workers=4,
         # pin_memory=True,
         # pin_memory_device='cuda:0'
     )

@@ -110,9 +110,15 @@ class Net(nn.Module):
                 nn.Linear(self.backbone.out_features, self.embedding_size, bias=False),
                 nn.BatchNorm1d(self.embedding_size),
             )
-            
-        self.head = ArcMarginProduct(self.embedding_size, args.n_classes)
-        
+        # ie corrections
+        # self.head = ArcMarginProduct(self.embedding_size, args.n_classes)
+        if args.txt_embeddings:
+            self.has_txt_embeddings = True
+        else:
+            self.has_txt_embeddings = False
+        self.head = ArcMarginProduct(self.embedding_size + args.text_embedding_size, args.n_classes)
+        # end of ie corrections
+
         if args.pretrained_weights is not None:
             self.load_state_dict(torch.load(args.pretrained_weights, map_location='cpu'), strict=False)
             print('weights loaded from', args.pretrained_weights)
@@ -127,8 +133,14 @@ class Net(nn.Module):
         
         x = self.neck(x)
 
-        logits = self.head(x)
-        
+        # ie modification
+        if self.has_txt_embeddings:
+            txt_embeddings = input_dict['input_txt']
+            logits = self.head(torch.hstack((x, txt_embeddings)))
+        else:
+            logits = self.head(x)
+        # end of ie modification
+
         if get_embeddings:
             return {'logits': logits, 'embeddings': x}
         else:

@@ -85,3 +85,6 @@ args['val_aug'] = A.Compose([A.LongestMaxSize(664, p=1),
                             p=1.0
                             )
 
+args['class_aug'] = A.Compose([
+    A.Resize(height=args['crop_size'], width=args['crop_size'], p=1.),
+])

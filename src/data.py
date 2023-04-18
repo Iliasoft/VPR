@@ -14,6 +14,9 @@ def collate_fn(batch):
     
     for key in ['input']:
         input_dict[key] = torch.stack([b[key] for b in batch])
+    for key in ['input_txt']:
+        input_dict[key] = torch.stack([b[key] for b in batch])
+
     for key in ['idx']:
         input_dict[key] = torch.stack([b[key] for b in batch]).long()   
     
@@ -24,7 +27,7 @@ def collate_fn(batch):
 
 class GLRDataset(Dataset):
 
-    def __init__(self, df, suffix='.jpg', preload=False, aug = None, normalization='simple'):
+    def __init__(self, df, suffix='.jpg', preload=False, aug = None, txt_embedding_fn=None, normalization='simple'):
 
         self.df = df
         self.aug = aug
@@ -40,6 +43,14 @@ class GLRDataset(Dataset):
             self.preload()
             self.images_in_cache = True
         self.eps = 1e-6
+        # ie added
+        import pickle
+        self.images_2_filtered_texts_embeddings = None
+        if txt_embedding:
+            with open(txt_embedding_fn, 'rb') as f:
+                self.images_2_filtered_texts_embeddings = pickle.load(f)
+        # end of ie addition
+        self.empty_txt_embedding = torch.zeros(384)
 
     def __getitem__(self, idx):
         id_ = self.image_names[idx]
@@ -56,13 +67,21 @@ class GLRDataset(Dataset):
         img = img.astype(np.float32)       
         if self.normalization:
             img = self.normalize_img(img)
-    
+
         tensor = self.to_torch_tensor(img)
-        
+        # ie modification
+        if id_ in self.images_2_filtered_texts_embeddings:
+
+            txt_embedding = self.images_2_filtered_texts_embeddings[id_]
+        else:
+            txt_embedding = self.empty_txt_embedding
+        # end of ie modification
         target = torch.tensor(self.labels[idx])
-        feature_dict = {'idx':torch.tensor(idx).long(),
-                        'input':tensor,
-                       'target':target.float()}
+        feature_dict = {'idx': torch.tensor(idx).long(),
+                        'input': tensor,
+                        'input_txt': txt_embedding,# added by ilias
+                        'target': target.float()
+                        }
         return feature_dict
 
     def __len__(self):

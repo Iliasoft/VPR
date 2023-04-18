@@ -37,12 +37,12 @@ if __name__ == '__main__':
 
     cosine_similarity = CosineSimilarity(dim=1, eps=1e-6).cuda()
 
-    if args_vertical_scope_start != args_vertical_scope_finish:
-        with open(join(sys.argv[1], get_embedding_file_name(args_vertical_scope_finish)), 'rb') as f:
-            tmp = pickle.load(f)
-            last_v_length = tmp.shape[0]
-    else:
-        last_v_length = 0
+    #if args_vertical_scope_start != args_vertical_scope_finish:
+    with open(join(sys.argv[1], get_embedding_file_name(args_vertical_scope_finish)), 'rb') as f:
+        tmp = pickle.load(f)
+        last_v_length = tmp.shape[0]
+    #else:
+    #    last_v_length = 0
 
     with open(join(sys.argv[1], get_embedding_file_name(args_horizontal_scope)), 'rb') as f:
         embeddings_horizontal = pickle.load(f)
@@ -110,11 +110,10 @@ if __name__ == '__main__':
                 pickle.dump(img_duplicate_ids, f)
 
             try:
-                if args_vertical_scope_completed != -1:
-                    shutil.move(
-                        join(sys.argv[1], get_similarity_file_name(args_horizontal_scope, v - 1)),
-                        join(sys.argv[1], "_" + get_similarity_file_name(args_horizontal_scope, v - 1)),
-                    )
+                shutil.move(
+                    join(sys.argv[1], get_similarity_file_name(args_horizontal_scope, v - 1)),
+                    join(sys.argv[1], "_" + get_similarity_file_name(args_horizontal_scope, v - 1)),
+                )
             except:
                 print("Warning: can't rename similarity file")
 

@@ -70,3 +70,7 @@ args['val_aug'] = A.Compose([
     A.Resize(height=544, width=672, p=1.),
     A.CenterCrop(height=args['crop_size'], width=args['crop_size'], p=1.)
 ])
+
+args['class_aug'] = A.Compose([
+    A.Resize(height=args['crop_size'], width=args['crop_size'], p=1.),
+])

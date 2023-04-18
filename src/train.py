@@ -357,11 +357,11 @@ if __name__ == '__main__':
         metric_crit = ArcFaceLoss(args.arcface_s, args.arcface_m, crit=args.crit, weight=class_weights)
         metric_crit_val = ArcFaceLoss(args.arcface_s, args.arcface_m, crit="bce", weight=None, reduction="sum")
 
-    tr_ds = GLRDataset(train, normalization=args.normalization, aug=args.tr_aug)
+    tr_ds = GLRDataset(train, normalization=args.normalization, aug=args.tr_aug, txt_embedding_fn=args.text_embeddings_fn)
 
     print("ds len", len(tr_ds))
 
-    val_ds = GLRDataset(valid, normalization=args.normalization, aug=args.val_aug)
+    val_ds = GLRDataset(valid, normalization=args.normalization, aug=args.val_aug, txt_embedding_fn=args.text_embeddings_fn)
 
     tr_dl = DataLoader(dataset=tr_ds, batch_size=args.batch_size, sampler=RandomSampler(tr_ds), collate_fn=collate_fn, num_workers=args.num_workers, drop_last=True, pin_memory=False)
 

@@ -9,7 +9,6 @@ args = {
     'data_path_2019':'e:/',
     'valid_csv_fn':'Train/recognition_solution_v2.1.csv',
     'train_csv_fn':'Train/train.csv',
-    
 
     'gpus':'0',
     'filter_warnings':True,
