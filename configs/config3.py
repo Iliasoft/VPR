@@ -12,7 +12,7 @@ args = {
 
     'gpus':'0',
     'filter_warnings':True,
-    'logger': 'neptune',
+    'logger': None,
     'num_sanity_val_steps': 0,
     'drop_last_n':0,
     'train_min_count':0,
@@ -28,10 +28,10 @@ args = {
     'p_trainable': True,
     
     'seed':717171,
-    'num_workers':4,
+    'num_workers':2,
     'save_weights_only': False,
 
-    'resume_from_checkpoint': None,
+    'resume_from_checkpoint': "../models/config3/ckpt/last.ckpt",
     'pretrained_weights': None,
     'normalization':'imagenet',
     'crop_size': 586,
@@ -49,27 +49,27 @@ args = {
     'loss':'arcface',
     #'focal_loss_gamma': 2,
     'class_weights': "log",
-    'class_weights_norm' :'batch',
+    'class_weights_norm': 'batch',
     
     'optimizer': "sgd",
     'weight_decay':1e-4,
     'lr': 0.05,
-    'batch_size': 16,
-    'max_epochs': 10,
+    'batch_size': 12,# c 13ю падает на второй(1) эпохе
+    'max_epochs': 11,
     'scheduler': {"method":"cosine", "warmup_epochs": 1},
 
     'n_classes':81313,
     'data_frac':1.,
 
     'neptune_project':'ieldarov/VPR',
-    'neptune_api_token':'eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiIwN2E3YmRmNS05ZmUxLTQ2M2YtYTcxOS1lOGIzMzZlYmMxMDUifQ=='
+    'neptune_api_token': None
 }
 
-args['tr_aug'] = A.Compose([A.Resize(height=656, width=656,p=1.),
+args['tr_aug'] = A.Compose([A.Resize(height=656, width=656, p=1.),
     A.RandomCrop(height=args['crop_size'], width=args['crop_size'],p=1.),
     A.HorizontalFlip(p=0.5),
     ])
 
-args['val_aug'] = A.Compose([A.Resize(height=656, width=656,p=1.),
+args['val_aug'] = A.Compose([A.Resize(height=656, width=656, p=1.),
     A.CenterCrop(height=args['crop_size'], width=args['crop_size'], p=1.)
 ])
