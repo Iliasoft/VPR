@@ -72,7 +72,7 @@ class GLRDataset(Dataset):
 
         tensor = self.to_torch_tensor(img)
         # ie modification
-        if id_ in self.images_2_filtered_texts_embeddings:
+        if self.images_2_filtered_texts_embeddings and id_ in self.images_2_filtered_texts_embeddings:
             txt_embedding = torch.tensor(self.images_2_filtered_texts_embeddings[id_])
         else:
             txt_embedding = self.empty_txt_embedding

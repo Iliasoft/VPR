@@ -28,7 +28,7 @@ args = {
 
     'drop_last_n': 0,
     'save_weights_only': False,
-    'resume_from_checkpoint': None,
+    'resume_from_checkpoint': None,#"../models/config10/ckpt/last.ckpt",
 
     'text_embeddings_fn': "../models/config10/images_text_embeddings_text_ocr.pkl",  # IE added
     'text_embedding_size': 384,
@@ -54,7 +54,7 @@ args = {
     'optimizer': "sgd",
     'lr': 0.05,
     'weight_decay': 1e-4,
-    'batch_size': 16,
+    'batch_size': 19,
     'max_epochs': 11,
 
     'scheduler': {"method": "cosine", "warmup_epochs": 1},
