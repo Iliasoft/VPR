@@ -20,7 +20,7 @@ Steps to reproduce the experiment:
 1. Make sure you have python, pytorch and other libraries listed in ```requirements.txt``` are installed.
 2. Clone this repository into your local IDE
 3. For model training and embeddings generation you'll need a CUDA compatible device (graphic card) for ~2 weeks x 24hr period along with its drivers.
-4. Download Google Landmarks v2 dataset (500Mb): https://github.com/cvdfoundation/google-landmark <br>
+4. Download Google Landmarks v2 dataset (500 Gb): https://github.com/cvdfoundation/google-landmark <br>
 GLMv2 has several versions, you need ```train clean``` version of train index (train_clean.csv ) along with complete test part of the DS. 
 5. Train one or more neuro-network model(s) with code provided in this repository.
 ```

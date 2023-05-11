@@ -1,4 +1,4 @@
-
+# this model is inherited from forked solution
 import os
 import albumentations as A
 abs_path = os.path.dirname(__file__)
@@ -27,7 +27,7 @@ args = {
     'num_workers':2,
     'save_weights_only':False,
 
-    'resume_from_checkpoint': None,#"../models/config2/ckpt/epoch=10.ckpt",
+    'resume_from_checkpoint': "../models/config2/ckpt/epoch=10.ckpt",
     'pretrained_weights': None,
     'model_weights_file_name': "../models/config2/config1_ckpt_10.pth",# IE added
 
@@ -62,8 +62,10 @@ args = {
     'data_frac':1.,
 
     'neptune_project': 'ieldarov/VPR',
-    'neptune_api_token': None
+    'neptune_api_token': None,
 
+    'text_embeddings_fn': None,
+    'text_embedding_size': 0
 }
 
 args['tr_aug'] = A.Compose([

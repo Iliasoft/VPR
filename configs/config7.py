@@ -1,4 +1,4 @@
-
+# this model is inherited from forked solution
 import os
 import albumentations as A
 abs_path = os.path.dirname(__file__)
@@ -58,7 +58,10 @@ args = {
     'data_frac':1.,
 
     'neptune_project':'ieldarov/VPR',
-    'neptune_api_token':None
+    'neptune_api_token': None,
+
+    'text_embeddings_fn': None,
+    'text_embedding_size': 0
 }
 
 args['tr_aug'] = A.Compose([A.Resize(height=544,width=672,p=1.),

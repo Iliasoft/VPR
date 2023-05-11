@@ -1,13 +1,10 @@
-import numpy as np
-import os
 import pickle
-import torch
 from tqdm import tqdm
-from configs import config1, config2, config3, config4, config5, config6, config7
+from configs import config6
 from torch.nn import CosineSimilarity
-from embeddings_multi_dir import Dict2Class
+from src.tools.embeddings_multi_dir import Dict2Class
 import sys
-from embeddings_multi_dir import DIRS_PROCESSED_CACHE, IMAGES_LIST
+from src.tools.embeddings_multi_dir import DIRS_PROCESSED_CACHE, IMAGES_LIST
 import shutil
 from files import flatten, join, get_dir_name
 

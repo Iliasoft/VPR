@@ -1,18 +1,4 @@
-import numpy as np
-import os
-import pickle
-import torch
 from tqdm import tqdm
-from configs import config1, config2, config3, config4, config5, config6, config7
-from torch.nn import CosineSimilarity
-from embeddings_multi_dir import Dict2Class
-import sys
-from embeddings_multi_dir import get_embedding_file_name, IMAGES_METADATA_FILE_NAME
-import shutil
-from files import flatten, join, get_dir_name, flatten
-import time
-import pandas as pd
-
 
 '''
 if __name__ == '__main__':
@@ -45,27 +31,15 @@ Original file is located at
 # Commented out IPython magic to ensure Python compatibility.
 # Собрал все imports и иницализацию
 import numpy as np
-import json
-from PIL import Image
 import os
-from os import listdir
 import copy
-import random
-from torch.nn.utils.rnn import pad_sequence  # pad batch
 from torch.utils.data import DataLoader, Dataset
-import torch.optim as optim
-import torchvision.transforms as transforms
-from sklearn.preprocessing import LabelEncoder
 import torch, torch.nn as nn
-import torch.nn.functional as F
 import torch.optim.lr_scheduler as shedulers
-import math
 from tqdm.notebook import tqdm
-from skimage.transform import resize
-from skimage import data
 from sklearn.metrics import confusion_matrix
 
-from matplotlib import colors, pyplot as plt
+from matplotlib import pyplot as plt
 
 # %matplotlib inline
 
@@ -410,7 +384,7 @@ def fit_epoch(model, train_loader, criterion, optimizer):
     return train_loss, train_acc
 
 
-from sklearn.metrics import f1_score, recall_score, precision_score
+from sklearn.metrics import f1_score
 
 
 def eval_epoch(model, val_loader, criterion, labelsTranslator=None):

@@ -1,3 +1,4 @@
+# this model is a derivation of model 4, finetuned to extended number of classes during 1 iteration
 import os
 import albumentations as A
 import cv2

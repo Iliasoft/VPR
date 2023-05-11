@@ -1,20 +1,12 @@
 import sys
-import os
-import time
 
-import numpy
 import torch
 import pickle
-import tqdm
 import cv2
 import numpy as np
-from torch.utils.data import DataLoader
-from torch.utils.data import Dataset
-from tqdm import tqdm
-from models import *
 from configs import config7
-from files import get_dir_name, join, crc32, DIRS_KEY, DIRS_MAP_FILE_NAME, IMAGES_LIST_FILE_NAME, IMAGES_METADATA_FILE_NAME
-from embeddings_multi_dir import Dict2Class, get_embedding_file_name, MultiDirDataset, normalize_imagenet_img
+from files import get_dir_name, join, DIRS_KEY, DIRS_MAP_FILE_NAME, IMAGES_LIST_FILE_NAME
+from src.tools.embeddings_multi_dir import Dict2Class, get_embedding_file_name, MultiDirDataset, normalize_imagenet_img
 from torch.nn import CosineSimilarity
 import time
 

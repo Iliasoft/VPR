@@ -8,7 +8,7 @@ import numpy as np
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 from tqdm import tqdm
-from models import *
+from src.models import *
 from configs import config7
 from files import get_dir_name, join, crc32, DIRS_KEY, DIRS_MAP_FILE_NAME, IMAGES_LIST_FILE_NAME, IMAGES_METADATA_FILE_NAME
 
@@ -170,6 +170,6 @@ if __name__ == '__main__':
     model = Net(args)
     model.eval()
     model.cuda()
-    model.load_state_dict(torch.load(args.model_weights_file_name))
+    model.load_state_dict(torch.load("../" + args.model_weights_file_name))
 
     get_embeddings(data_loader, model, args, desired_store_size, images_to_skip)

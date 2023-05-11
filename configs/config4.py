@@ -1,4 +1,4 @@
-
+# this model is inherited from forked solution
 import os
 import albumentations as A
 import cv2
@@ -67,7 +67,11 @@ args = {
     'crop_size': 448,
 
     'neptune_project':'ieldarov/VPR',
-    'neptune_api_token':'eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiIwN2E3YmRmNS05ZmUxLTQ2M2YtYTcxOS1lOGIzMzZlYmMxMDUifQ=='
+    'neptune_api_token':None,
+
+    'text_embeddings_fn': None,
+    'text_embedding_size': 0
+
 }
 
 args['tr_aug'] = A.Compose([A.LongestMaxSize(512, p=1),

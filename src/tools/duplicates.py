@@ -1,18 +1,13 @@
-import numpy as np
 import os
 import pickle
 import torch
 from tqdm import tqdm
-from configs import config1, config2, config3, config4, config5, config6, config7
 from torch.nn import CosineSimilarity
-from embeddings_multi_dir import Dict2Class
 import sys
 #from embeddings_multi_dir import
-import shutil
 from files import join, get_dir_name, flatten, DIRS_MAP_FILE_NAME, IMAGES_LIST_FILE_NAME, IMAGES_COMMENTS_FILE_NAME
 from similarity_multi_dir import get_similarity_file_name, similarity_ranges
 import statistics
-import shutil
 
 
 def check_intersection_similarity(intersection, cosine_similarity, threshold):

@@ -1,3 +1,4 @@
+# this model is a derivation of model 4, trained from scratch to extended number of classes
 import os
 import albumentations as A
 import cv2
@@ -66,7 +67,10 @@ args = {
     'crop_size': 448,
 
     'neptune_project': 'ieldarov/VPR',
-    'neptune_api_token': None
+    'neptune_api_token': None,
+
+    'text_embeddings_fn': None,
+    'text_embedding_size': 0
 }
 
 args['tr_aug'] = A.Compose([A.LongestMaxSize(512, p=1),

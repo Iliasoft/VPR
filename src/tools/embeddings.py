@@ -4,13 +4,15 @@ import pickle
 import tqdm
 import cv2
 import numpy as np
+import glob
 import albumentations as A
+import torch
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 from pathlib import Path
 from tqdm import tqdm
 from files import join
-from models import *
+from src.models import *
 from configs import config1, config2, config3, config4, config5, config6, config7
 
 
@@ -37,8 +39,7 @@ class DirDataset(Dataset):
         self.root_dir = root_dir
         self.normalize = normalize
         self.aug = albumentation
-        import glob
-        #self.image_names = list(Path(root_dir).glob('*.jpg'))
+
         self.image_names = list(Path(root_dir).glob('**/*.jpg'))
         # print(self.image_names)
 
@@ -105,8 +106,7 @@ if __name__ == '__main__':
     model = Net(args)
     model.eval()
     model.cuda()
-    #model.load_state_dict(torch.load("d:/model.pth"))
-    model.load_state_dict(torch.load(args.model_weights_file_name))
+    model.load_state_dict(torch.load("../" + args.model_weights_file_name))
 
     embeddings, img_names = get_embeddings(data_loader, model, args)
 

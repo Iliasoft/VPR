@@ -1,3 +1,4 @@
+# this model is a derivation of model 9 (and therefore4) extended with OCR embeddings, trained from scratch to extended number of classes
 import os
 import albumentations as A
 import cv2
@@ -55,7 +56,7 @@ args = {
     'lr': 0.05,
     'weight_decay': 1e-4,
     'batch_size': 17,
-    'max_epochs': 11,
+    'max_epochs': 6,
 
     'scheduler': {"method": "cosine", "warmup_epochs": 1},
 

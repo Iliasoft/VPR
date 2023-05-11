@@ -1,4 +1,4 @@
-
+# this model is inherited from forked solution
 import os
 import albumentations as A
 abs_path = os.path.dirname(__file__)
@@ -30,7 +30,7 @@ args = {
 
     'resume_from_checkpoint': "../models/config1/ckpt/epoch=11.ckpt",
     'pretrained_weights': None,
-    #'model_weights_file_name': "../models/config1/config1_ckpt_12.pth",# IE added
+    'model_weights_file_name': "../models/config1/config1_ckpt_12.pth",# IE added
 
     'normalization':'imagenet',
     'crop_size':448,
@@ -65,7 +65,6 @@ args = {
 
     'text_embeddings_fn': None,
     'text_embedding_size': 0
-
 }
 
 args['tr_aug'] = A.Compose([
