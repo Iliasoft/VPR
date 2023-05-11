@@ -68,7 +68,10 @@ args = {
     'crop_size': 448,
 
     'neptune_project': 'ieldarov/VPR',
-    'neptune_api_token': None
+    'neptune_api_token': None,
+
+    'text_embeddings_fn': None,
+    'text_embedding_size': 0
 }
 
 args['tr_aug'] = A.Compose([A.LongestMaxSize(512, p=1),
