@@ -1,18 +1,15 @@
 import pickle
 from collections import OrderedDict
 
-import numpy as np
+
 import sklearn
-import torch
-import torchmetrics
 from scipy import stats
-from tqdm import tqdm
 from transformers import AdamW, get_cosine_schedule_with_warmup
 
 # sys.argv = ['--config', 'config8']
 
 # from conf import
-import src.utils
+from src.utils import *
 from src.data import *
 from src.models import *
 from src.loss import *
@@ -31,6 +28,8 @@ def setup():
         args.seed = np.random.randint(0, 1000000)
 
     set_seed(args.seed)
+
+
 
     print('Load train DS from:', args.data_path + args.train_csv_fn)
     train = pd.read_csv(args.data_path + args.train_csv_fn)
