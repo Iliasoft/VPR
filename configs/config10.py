@@ -11,6 +11,7 @@ args = {
     'model_path': f'{base_path}/Models/',
     'data_path': f'{base_path}',
     'data_path_2019': f'{base_path}',
+    'work_path': f'{base_path}/config10/',
 
     # full GLM + PostCards
     # GLM Test, 100K imgs, mix of LMs and out of domain учились на GLM
