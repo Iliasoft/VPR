@@ -12,8 +12,8 @@ args = {
     'model_path': '../models/',
     'data_path': f'{base_path}',
     'data_path_2019': f'{base_path}',
-    'valid_csv_fn': 'Train/recognition_solution_v2.1_extended.csv',
-    'train_csv_fn': 'Train/train_extended.csv',
+    'valid_csv_fn': f'{base_path}Train/recognition_solution_v2.1_extended.csv',
+    'train_csv_fn': f'{base_path}Train/train_extended.csv',
 
     'filter_warnings': True,
     'logger': None,
