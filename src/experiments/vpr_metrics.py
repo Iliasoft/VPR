@@ -4,6 +4,8 @@ from collections import OrderedDict
 
 import sklearn
 from scipy import stats
+from tqdm import tqdm
+
 from transformers import AdamW, get_cosine_schedule_with_warmup
 
 # sys.argv = ['--config', 'config8']
@@ -15,6 +17,8 @@ from src.models import *
 from src.loss import *
 import pandas as pd
 import pytorch_lightning as pl
+from src.train import  setup, Model, fix_row
+
 
 
 def fix_row(row):
@@ -23,13 +27,11 @@ def fix_row(row):
     return row
 
 
-def setup():
+def __setup():
     if args.seed == -1:
         args.seed = np.random.randint(0, 1000000)
 
     set_seed(args.seed)
-
-
 
     print('Load train DS from:', args.data_path + args.train_csv_fn)
     train = pd.read_csv(args.data_path + args.train_csv_fn)
@@ -87,151 +89,6 @@ def setup():
 
     return train, valid, train_filter, landmark_ids, landmark_id2class, landmark_id2class_val, class_weights, allowed_classes
 
-
-class Model(pl.LightningModule):
-
-    def __init__(self, hparams, tr_dl, val_dl, tr_filter_dl, train_filter, metric_crit, metric_crit_val,
-                 allowed_classes):
-        super(Model, self).__init__()
-
-        self.tr_dl = tr_dl
-        self.val_dl = val_dl
-        self.tr_filter_dl = tr_filter_dl
-        self.train_filter = train_filter
-        self.metric_crit = metric_crit
-        self.metric_crit_val = metric_crit_val
-        self.allowed_classes = torch.Tensor(allowed_classes).long()
-
-        self.params = hparams
-        if args.distributed_backend == "ddp":
-            self.num_train_steps = math.ceil(
-                len(self.tr_dl) / (len(args.gpus.split(',')) * args.gradient_accumulation_steps))
-        else:
-            self.num_train_steps = math.ceil(len(self.tr_dl) / args.gradient_accumulation_steps)
-
-        self.model = Net(args)
-
-    def forward(self, x, get_embeddings=False):
-        return self.model(x, get_embeddings)
-
-    def configure_optimizers(self):
-
-        if args.optimizer == "adamw":
-            self.optimizer = AdamW([{'params': self.model.parameters()}, {'params': self.metric_crit.parameters()}],
-                                   lr=self.params.lr, weight_decay=args.weight_decay)
-        elif args.optimizer == "sgd":
-            self.optimizer = torch.optim.SGD(
-                [{'params': self.model.parameters()}, {'params': self.metric_crit.parameters()}], lr=self.params.lr,
-                momentum=0.9, nesterov=True, weight_decay=args.weight_decay)
-
-        elif args.optimizer == "fused_sgd":
-            import apex
-            self.optimizer = apex.optimizers.FusedSGD(
-                [{'params': self.model.parameters()}, {'params': self.metric_crit.parameters()}], lr=self.params.lr,
-                momentum=0.9, nesterov=True, weight_decay=args.weight_decay)
-
-        if args.scheduler["method"] == "cosine":
-            self.scheduler = get_cosine_schedule_with_warmup(self.optimizer,
-                                                             num_warmup_steps=self.num_train_steps * args.scheduler[
-                                                                 "warmup_epochs"],
-                                                             num_training_steps=int(
-                                                                 self.num_train_steps * (args.max_epochs)))
-            return [self.optimizer], [{'scheduler': self.scheduler, 'interval': 'step'}]
-        elif args.scheduler["method"] == "step":
-            self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=args.scheduler["step_size"],
-                                                             gamma=args.scheduler["gamma"], last_epoch=-1)
-            return [self.optimizer], [{'scheduler': self.scheduler, 'interval': 'epoch'}]
-        elif args.scheduler["method"] == "plateau":
-            self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, factor=0.1, mode="max",
-                                                                        patience=1, verbose=True)
-            return [self.optimizer], [
-                {'scheduler': self.scheduler, 'interval': 'epoch', 'reduce_on_plateau': True, 'monitor': 'val_gap_pp'}]
-        else:
-            self.scheduler = None
-            return [self.optimizer]
-
-    def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
-        # optimizer.zero_grad()
-        for param in self.model.parameters():
-            param.grad = None
-
-    def train_dataloader(self):
-        return self.tr_dl
-
-    def training_step(self, batch, batcn_num):
-        input_dict, target_dict = batch
-
-        output_dict = self.forward(input_dict)
-        loss = loss_fn(self.metric_crit, target_dict, output_dict)
-
-        if args.arcface_s is None:
-            s = self.metric_crit.s.detach().cpu().numpy()
-        elif args.arcface_s == -1:
-            s = 0
-        else:
-            s = self.metric_crit.s
-
-        if args.distributed_backend == "ddp":
-            step = self.global_step * args.batch_size * len(args.gpus.split(',')) * args.gradient_accumulation_steps
-        else:
-            step = self.global_step * args.batch_size * args.gradient_accumulation_steps
-
-        tb_dict = {'train_loss': loss, 'arcface_s': s, 'step': step}
-
-        for i, param_group in enumerate(self.optimizer.param_groups):
-            tb_dict[f'lr/lr{i}'] = param_group['lr']
-
-        output = OrderedDict({
-            'loss': loss,
-            'log': tb_dict,
-
-        })
-
-        return output
-
-    def validation_step(self, batch, batch_nb, dataset_idx):
-        if dataset_idx == 0:
-            input_dict, target_dict = batch
-            output_dict = self.forward(input_dict, get_embeddings=True)
-            loss = loss_fn(self.metric_crit_val, target_dict, output_dict, val=True)  # .data.cpu().numpy()
-
-            logits = output_dict['logits']
-            embeddings = output_dict['embeddings']
-
-            preds_conf, preds = torch.max(logits.softmax(1), 1)
-
-            allowed_classes = self.allowed_classes.to(logits.device)
-
-            preds_conf_pp, preds_pp = torch.max(logits.gather(1, allowed_classes.repeat(logits.size(0), 1)).softmax(1),
-                                                1)
-            preds_pp = allowed_classes[preds_pp]
-
-            targets = target_dict['target']
-
-            output = dict({
-                'idx': input_dict['idx'],
-                'embeddings': embeddings,
-                'val_loss': loss.view(1),
-                'preds': preds,
-                'preds_conf': preds_conf,
-                'preds_pp': preds_pp,
-                'preds_conf_pp': preds_conf_pp,
-                'targets': targets,
-
-            })
-
-            return output
-        else:
-            input_dict, target_dict = batch
-            targets = target_dict['target']
-            output_dict = self.forward(input_dict, get_embeddings=True)
-            embeddings = output_dict["embeddings"]
-            output = dict({
-                'idx': input_dict['idx'],
-                'embeddings': embeddings,
-                'targets': targets,
-            })
-            return output
 
 
 def make_predictions(dl, _model_path, _threshold=0):
@@ -412,15 +269,6 @@ if __name__ == '__main__':
 
     experiment_path = args.model_path + args.experiment_name + '\\'
     model_path = f'{experiment_path}{args.experiment_name}_ckpt_{args.max_epochs}.pth'
-    model_path = f'{experiment_path}{args.experiment_name}_ckpt_{args.max_epochs}.pth'
-
-    # print('')
-    # merics_result = []
-    # for tr in np.arange(0.6, 0.7, 0.01):
-    #     print(f"START THRESHOLD {tr:.4}")
-    #
-    #     pred_result, prec, recall, acc = make_predictions(val_dl, model_path, _threshold=tr)
-    #     merics_result.append((tr, prec, recall, acc))
 
     pred_result, prec, recall, acc = make_predictions(val_dl, model_path)
     with open(f'E:/ftp/data/Models/config10/config10_vpr_pred_result.pkl', 'wb') as f:
