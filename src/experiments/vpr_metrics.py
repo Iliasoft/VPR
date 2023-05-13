@@ -1,7 +1,6 @@
 import pickle
 from collections import OrderedDict
 
-
 import sklearn
 from scipy import stats
 from tqdm import tqdm
@@ -17,8 +16,7 @@ from src.models import *
 from src.loss import *
 import pandas as pd
 import pytorch_lightning as pl
-from src.train import  setup, Model, fix_row
-
+from src.train import setup, Model, fix_row
 
 
 def fix_row(row):
@@ -88,7 +86,6 @@ def __setup():
     # train = train.head(args.batch_size*2)
 
     return train, valid, train_filter, landmark_ids, landmark_id2class, landmark_id2class_val, class_weights, allowed_classes
-
 
 
 def make_predictions(dl, _model_path, _threshold=0):
@@ -226,7 +223,9 @@ if __name__ == '__main__':
 
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     print('device ', device)
-    print(torch.cuda.device)
+
+    print('Validation datSet is loaded from: ', args.data_path + args.valid_csv_fn)
+    print('Train     dataSet is loaded from: ', args.data_path + args.train_csv_fn)
 
     train, valid, train_filter, landmark_ids, landmark_id2class, landmark_id2class_val, class_weights, allowed_classes = setup()
 
@@ -240,8 +239,7 @@ if __name__ == '__main__':
         metric_crit = ArcFaceLoss(args.arcface_s, args.arcface_m, crit=args.crit, weight=class_weights)
         metric_crit_val = ArcFaceLoss(args.arcface_s, args.arcface_m, crit="bce", weight=None, reduction="sum")
 
-    print(f'Load  train  {len(train)}')
-    print(f'Load  valid  {len(valid)}')
+
 
     tr_ds = GLRDataset(train, normalization=args.normalization, preload=False, txt_embedding_fn=args.text_embeddings_fn,
                        aug=args.tr_aug)
