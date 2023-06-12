@@ -87,18 +87,18 @@ def get_embeddings(dl, model, args):
 
 
 if __name__ == '__main__':
-    args = Dict2Class(config7.args)
+    args = Dict2Class(config1.args)
     print("Generating img embeddings for the directory " + sys.argv[1])
 
     albumentation = args.class_aug
 
-    batch_size = 24
+    batch_size = 12
     data_set = DirDataset(sys.argv[1], albumentation, normalize_imagenet_img)
     data_loader = DataLoader(
         data_set,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=4,
+        num_workers=2,
         # pin_memory=True,
         # pin_memory_device='cuda:0'
     )

@@ -30,7 +30,7 @@ args = {
 
     'resume_from_checkpoint': "../models/config1/ckpt/epoch=11.ckpt",
     'pretrained_weights': None,
-    'model_weights_file_name': "../models/config1/config1_ckpt_12.pth",# IE added
+    'model_weights_file_name': "../models/config1/config1_ckpt_10.pth",# IE added
 
     'normalization':'imagenet',
     'crop_size':448,
@@ -69,11 +69,13 @@ args = {
 
 args['tr_aug'] = A.Compose([
     A.SmallestMaxSize(512),
-    A.RandomCrop(height=args['crop_size'], width=args['crop_size'],p=1.),
+    A.RandomCrop(height=args['crop_size'], width=args['crop_size'], p=1.),
     A.HorizontalFlip(p=0.5),
     ])
 
 args['val_aug'] = A.Compose([
     A.SmallestMaxSize(512),
-    A.CenterCrop(height=args['crop_size'], width=args['crop_size'],p=1.)
+    A.CenterCrop(height=args['crop_size'], width=args['crop_size'], p=1.)
 ])
+
+args['class_aug'] = args['val_aug']

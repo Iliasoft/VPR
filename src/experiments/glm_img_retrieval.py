@@ -17,8 +17,8 @@ import matplotlib.pyplot as plt
 #
 NO_CATEGORY_REPLACEMENT = -1
 TEST_FILES_RETRIEVAL_MAPPING_FILE_NAME = "retrieval_solution_v2.1.csv"
-TEST_FILES_EMBEDDINGS_FILE_NAME = "Test/embeddings.pkl"
-INDEX_FILES_EMBEDDINGS_FILE_NAME = "Index/embeddings.pkl"
+TEST_FILES_EMBEDDINGS_FILE_NAME = "Test/embeddings_4.pkl"
+INDEX_FILES_EMBEDDINGS_FILE_NAME = "Index/embeddings_4.pkl"
 
 IMG = 'img'
 CAT = 'cat'

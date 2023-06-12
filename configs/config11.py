@@ -56,7 +56,7 @@ args = {
     'lr': 0.05,
     'weight_decay': 1e-4,
     'batch_size': 17,
-    'max_epochs': 6,
+    'max_epochs': 10,
 
     'scheduler': {"method": "cosine", "warmup_epochs": 1},
 

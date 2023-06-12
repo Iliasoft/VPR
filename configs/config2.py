@@ -27,12 +27,14 @@ args = {
     'num_workers':2,
     'save_weights_only':False,
 
-    'resume_from_checkpoint': "../models/config2/ckpt/epoch=10.ckpt",
+    'resume_from_checkpoint': "../models/config2/ckpt/last.ckpt",
     'pretrained_weights': None,
     'model_weights_file_name': "../models/config2/config1_ckpt_10.pth",# IE added
 
     'normalization':'imagenet',
     'crop_size':448,
+    'text_embeddings_fn': None,  # IE added
+    'text_embedding_size': 384,
 
     'backbone':'gluon_seresnext101_32x4d',
     'embedding_size': 512,
@@ -49,14 +51,14 @@ args = {
     'loss':'arcface',
     #'focal_loss_gamma': 2,
     'class_weights': "log",
-    'class_weights_norm' :'batch',
+    'class_weights_norm': 'batch',
     
     'optimizer': "sgd",
     'weight_decay':1e-4,
     'lr': 0.05,
     'batch_size': 9,
     'max_epochs': 10,
-    'scheduler': {"method":"cosine","warmup_epochs": 1},
+    'scheduler': {"method":"cosine", "warmup_epochs": 1},
 
     'n_classes':81313,
     'data_frac':1.,
